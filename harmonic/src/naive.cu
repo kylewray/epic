@@ -22,9 +22,9 @@
  */
 
 
-#include "naive.h"
-
 #include <stdio.h>
+
+#include "../include/naive.h"
 
 __device__ void index_to_coordinate(unsigned int n, unsigned int *m, unsigned long long int i, unsigned int *&c)
 {
