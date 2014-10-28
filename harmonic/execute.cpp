@@ -25,51 +25,85 @@
 #include <stdio.h>
 #include <cstdlib>
 
-#include "include/naive.h"
 #include "include/worlds.h"
+#include "include/naive.h"
+#include "include/cpu.h"
 
 int main(int argc, char *argv[])
 {
-	unsigned int *m = nullptr;
-	float *h = nullptr;
+	unsigned int version = 1;
 
 	srand(1);
 
-	//* ----- Simple World -----
-	create_simple_world(m, h);
-	//*/
+	if (version == 0) { // CUDA
+		unsigned int *m = nullptr;
+		float *h = nullptr;
 
-	/* ----- Variable World -----
-	create_variable_world(100, 30, m, h, 5, 10);
-	//*/
+		//* ----- Simple World -----
+		create_simple_world_1d(m, h);
+		//*/
 
-	unsigned int *d_m;
-	float *d_u;
+		/* ----- Variable World -----
+		// Note: Only works with equal dimension sizes!!! Bug with index math somewhere...
+		create_variable_world_1d(64, 64, m, h, 10, 10);
+		//*/
 
-	unsigned int b[3];
-	b[0] = 3; b[1] = 3; b[2] = 3; // Equivalent to 3 * 3 * 3 = 18 blocks.
-	unsigned int t[3];
-	t[0] = 8; t[1] = 8; t[2] = 8; // Equivalent to 8 * 8 * 8 = 512 threads.
+		unsigned int *d_m;
+		float *d_u;
+		float *d_uPrime;
 
-	if (harmonic_alloc(2, m, h, d_m, d_u) != 0) {
-		return 1;
-	}
+		// Setup the number of blocks and threads so that we have enough to execute all the threads.
+		unsigned int b[3];
+		b[0] = 6; b[1] = 6; b[2] = 4; // Equivalent to 3 * 3 * 3 = 18 blocks.
+		unsigned int t[3];
+		t[0] = 8; t[1] = 8; t[2] = 8; // Equivalent to 8 * 8 * 8 = 512 threads.
 
-	if (harmonic_execute(2, m, 0.01, d_m, d_u, b, t, 25) != 0) {
-		return 1;
-	}
+		// Allocate and execute Jacobi iteration on the GPU (naive version).
+		if (harmonic_alloc(2, m, h, d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+		if (harmonic_execute(2, m, 0.01f, d_m, d_u, d_uPrime, b, t, 25) != 0) {
+			return 1;
+		}
 
-	float *u = new float[m[0] * m[1]];
-	harmonic_get(2, m, d_u, u);
+		// Get the world from the GPU and print it.
+		float *u = new float[m[0] * m[1]];
 
-	print_world(m, u);
+		harmonic_get(2, m, d_u, u);
+		print_world_1d(m, u);
 
-	delete [] m;
-	delete [] h;
-	delete [] u;
+		// Release everything.
+		if (harmonic_free(d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+		delete [] u;
+		delete [] m;
+		delete [] h;
+	} else if (version == 1) { // CPU
+		unsigned int *m = nullptr;
+		float **h = nullptr;
 
-	if (harmonic_free(d_m, d_u) != 0) {
-		return 1;
+		/* ----- Simple World -----
+		create_simple_world_2d(m, h);
+		//*/
+
+		//* ----- Variable World -----
+		// Note: Only works with equal dimension sizes!!! Bug with index math somewhere...
+		create_variable_world_2d(5000, 100, m, h, 10, 30);
+		//*/
+
+		// Solve it and print it out.
+		cpu_harmonic_2d(CPU_HARMONIC_VARIANT_JACOBI, m, h, 0.001f);
+//		cpu_harmonic_2d(CPU_HARMONIC_VARIANT_GAUSS_SEIDEL, m, h, 0.001f);
+//		cpu_harmonic_2d(CPU_HARMONIC_VARIANT_SOR, m, h, 0.001f);
+		print_world_2d(m, h);
+
+		// Release everything.
+		for (int i = 0; i < m[0]; i++) {
+			delete [] h[i];
+		}
+		delete [] h;
+		delete [] m;
 	}
 
 	return 0;

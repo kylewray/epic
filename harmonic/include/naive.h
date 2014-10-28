@@ -32,15 +32,16 @@
 
 /**
  * Allocate and transfer the harmonic function to the device.
- * @param	n	The number of dimensions.
- * @param	m	The n-dimensional array, specifying the dimensions for each dimension.
- * @param	h	The harmonic function as an n-dimensional array.
- * @param	d_m	The resulting memory address for the dimension sizes on the device.
- * @param	d_u	The resulting memory address of the discrete values on the device.
+ * @param	n			The number of dimensions.
+ * @param	m			The n-dimensional array, specifying the dimensions for each dimension.
+ * @param	h			The harmonic function as an n-dimensional array.
+ * @param	d_m			The resulting memory address for the dimension sizes on the device.
+ * @param	d_u			The resulting memory address of the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
 int harmonic_alloc(unsigned int n, const unsigned int *m, const float *h,
-		unsigned int *&d_m, float *&d_u);
+		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
 
 /**
  * Iterate the harmonic function solver which uses the Jacobi method.
@@ -49,15 +50,16 @@ int harmonic_alloc(unsigned int n, const unsigned int *m, const float *h,
  * @param	epsilon		The max convergence check.
  * @param	d_m			The memory address for the dimension sizes on the device.
  * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @param	b			The 3d-block dimension.
  * @param	t			The 3d-thread dimension.
  * @param	stagger		How many iterations to stagger convergence checks.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
 int harmonic_execute(unsigned int n, const unsigned int *m, float epsilon,
-		unsigned int *d_m, float *d_u,
+		unsigned int *d_m, float *d_u, float *d_uPrime,
 		unsigned int *b, unsigned int *t,
-		unsigned int );
+		unsigned int stagger);
 
 /**
  * Obtain a gradient from the device at a particular cell (index).
@@ -91,11 +93,12 @@ int harmonic_get(unsigned int n, const unsigned int *m, float *d_u, float *u);
 
 /**
  * Free the harmonic function and the discrete values from the device.
- * @param	d_m		The memory address on the device for the dimension sizes.
- * @param	d_u		The memory address on the device for the discrete values on the device.
+ * @param	d_m			The memory address on the device for the dimension sizes.
+ * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int harmonic_free(unsigned int *d_m, float *d_u);
+int harmonic_free(unsigned int *d_m, float *d_u, float *d_uPrime);
 
 
 #endif // NAIVE_H

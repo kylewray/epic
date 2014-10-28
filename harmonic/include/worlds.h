@@ -32,7 +32,8 @@
  * @param	m	The dimensions of the world.
  * @param	h	The resulting harmonic function.
  */
-void create_simple_world(unsigned int *&m, float *&h);
+void create_simple_world_1d(unsigned int *&m, float *&h);
+void create_simple_world_2d(unsigned int *&m, float **&h);
 
 /**
  * Create a variable mRows-by-mCols world with a random number of rectangles.
@@ -43,15 +44,18 @@ void create_simple_world(unsigned int *&m, float *&h);
  * @param	numRectangles	The number of rectangles to randomly place.
  * @param	maxSize			The maximum width and height of the rectangles.
  */
-void create_variable_world(unsigned int mRows, unsigned int mCols, unsigned int *&m, float *&h,
+void create_variable_world_1d(unsigned int mRows, unsigned int mCols, unsigned int *&m, float *&h,
+		unsigned int numRectangles, unsigned int maxSize);
+void create_variable_world_2d(unsigned int mRows, unsigned int mCols, unsigned int *&m, float **&h,
 		unsigned int numRectangles, unsigned int maxSize);
 
 /**
  * Print out the world provided.
  * @param	m		The dimensions of the world.
- * @param	d_u		The pointer to the device of the resulting u function.
+ * @param	u		The resulting u function.
  */
-void print_world(unsigned int *m, float *d_u);
+void print_world_1d(unsigned int *m, float *u);
+void print_world_2d(unsigned int *m, float **u);
 
 
 #endif // WORLDS_H
