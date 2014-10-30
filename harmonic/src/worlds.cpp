@@ -126,10 +126,10 @@ void create_variable_world_1d(unsigned int mRows, unsigned int mCols, unsigned i
 
 	// Random boxes.
 	for (int k = 0; k < numBoxes; k++) {
-		unsigned int r = (unsigned int)((float)(m[0] - maxSize - 1) * rand() / (float)RAND_MAX);
-		unsigned int c = (unsigned int)((float)(m[1] - maxSize - 1) * rand() / (float)RAND_MAX);
-		unsigned int x = (unsigned int)((float)maxSize * rand() / (float)RAND_MAX) + 1;
-		unsigned int y = (unsigned int)((float)maxSize * rand() / (float)RAND_MAX) + 1;
+		unsigned int r = (unsigned int)((float)(m[0] - (maxSize - 1)) * rand() / (float)RAND_MAX);
+		unsigned int c = (unsigned int)((float)(m[1] - (maxSize - 1)) * rand() / (float)RAND_MAX);
+		unsigned int x = (unsigned int)((float)(maxSize - 2) * rand() / (float)RAND_MAX) + 1;
+		unsigned int y = (unsigned int)((float)(maxSize - 2) * rand() / (float)RAND_MAX) + 1;
 
 		for (unsigned int i = r; i < r + y; i++) {
 			for (unsigned int j = c; j < c + x; j++) {
@@ -181,10 +181,10 @@ void create_variable_world_2d(unsigned int mRows, unsigned int mCols, unsigned i
 
 	// Random boxes.
 	for (int k = 0; k < numBoxes; k++) {
-		unsigned int r = (unsigned int)((float)(m[0] - maxSize - 1) * rand() / (float)RAND_MAX);
-		unsigned int c = (unsigned int)((float)(m[1] - maxSize - 1) * rand() / (float)RAND_MAX);
-		unsigned int x = (unsigned int)((float)maxSize * rand() / (float)RAND_MAX) + 1;
-		unsigned int y = (unsigned int)((float)maxSize * rand() / (float)RAND_MAX) + 1;
+		unsigned int r = (unsigned int)((float)(m[0] - (maxSize - 1)) * rand() / (float)RAND_MAX);
+		unsigned int c = (unsigned int)((float)(m[1] - (maxSize - 1)) * rand() / (float)RAND_MAX);
+		unsigned int x = (unsigned int)((float)(maxSize - 2) * rand() / (float)RAND_MAX) + 1;
+		unsigned int y = (unsigned int)((float)(maxSize - 2) * rand() / (float)RAND_MAX) + 1;
 
 		for (unsigned int i = r; i < r + y; i++) {
 			for (unsigned int j = c; j < c + x; j++) {
@@ -232,7 +232,7 @@ void print_world_2d(unsigned int *m, float **u)
 			} else if (u[i][j] < 0.0f) {
 					printf("----- ");
 			} else {
-				printf("%.3f ", fabs(u[i][j]));
+				printf("%.3f ", (u[i][j]));
 			}
 		}
 		printf("\n");

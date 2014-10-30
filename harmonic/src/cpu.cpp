@@ -27,11 +27,11 @@
 
 #include "../include/cpu.h"
 
-int cpu_harmonic_2d(CPUHarmonicVariant variant, const unsigned int *m, float **u, float epsilon)
+int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 {
 	// Ensure that valid data was passed.
 	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
-		std::cerr << "Error[harmonic_alloc]: Invalid data." << std::endl;
+		std::cerr << "Error[cpu_harmonic_jacobi_2d]: Invalid data." << std::endl;
 		return 1;
 	}
 
@@ -65,29 +65,15 @@ int cpu_harmonic_2d(CPUHarmonicVariant variant, const unsigned int *m, float **u
 
 				// Swap between updating u and uPrime.
 				if (iterations % 2 == 0) {
-					if (variant == CPU_HARMONIC_VARIANT_JACOBI) {
-						uPrime[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
-					} else if (variant == CPU_HARMONIC_VARIANT_GAUSS_SEIDEL) {
-						uPrime[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(uPrime[im][j]) + fabs(u[i][jp]) + fabs(uPrime[i][jm]));
-					} else if (variant == CPU_HARMONIC_VARIANT_SOR) {
-						uPrime[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
-					}
+					uPrime[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
 				} else {
-					if (variant == CPU_HARMONIC_VARIANT_JACOBI) {
-						u[i][j] = 0.25f * (fabs(uPrime[ip][j]) + fabs(uPrime[im][j]) + fabs(uPrime[i][jp]) + fabs(uPrime[i][jm]));
-					} else if (variant == CPU_HARMONIC_VARIANT_GAUSS_SEIDEL) {
-						u[i][j] = 0.25f * (fabs(uPrime[ip][j]) + fabs(u[im][j]) + fabs(uPrime[i][jp]) + fabs(u[i][jm]));
-					} else if (variant == CPU_HARMONIC_VARIANT_SOR) {
-						u[i][j] = 0.25f * (fabs(uPrime[ip][j]) + fabs(uPrime[im][j]) + fabs(uPrime[i][jp]) + fabs(uPrime[i][jm]));
-					}
+					u[i][j] = 0.25f * (fabs(uPrime[ip][j]) + fabs(uPrime[im][j]) + fabs(uPrime[i][jp]) + fabs(uPrime[i][jm]));
 				}
 
 				// Compute delta, the difference between this iteration and the previous iteration.
 				delta = std::max(delta, (float)fabs(u[i][j] - uPrime[i][j]));
 			}
 		}
-
-		std::cout << delta << std::endl;
 
 		iterations++;
 	}
@@ -99,6 +85,100 @@ int cpu_harmonic_2d(CPUHarmonicVariant variant, const unsigned int *m, float **u
 		delete [] uPrime[i];
 	}
 	delete [] uPrime;
+
+	return 0;
+}
+
+int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon)
+{
+	// Ensure that valid data was passed.
+	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
+		std::cerr << "Error[cpu_harmonic_gauss_seidel_2d]: Invalid data." << std::endl;
+		return 1;
+	}
+
+	unsigned int iterations = 0;
+	float delta = epsilon + 1.0f;
+
+	while (delta > epsilon) {
+		delta = 0.0f;
+
+		for (unsigned int i = 0; i < m[0]; i++) {
+			for (unsigned int j = 0; j < m[1]; j++) {
+				// If this is assigned a value, then skip it.
+				if (signbit(u[i][j])) {
+					continue;
+				}
+
+				// Compute the offsets, and ensure it does not go out of bounds.
+				unsigned int ip = std::min(m[0] - 1, i + 1);
+				unsigned int im = std::max(0, (int)i - 1);
+				unsigned int jp = std::min(m[1] - 1, j + 1);
+				unsigned int jm = std::max(0, (int)j - 1);
+
+				float old = u[i][j];
+
+				// Note: By construction of the for-loop, im and jm are actually the next iteration.
+				u[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
+
+				// Compute delta, the difference between this iteration and the previous iteration.
+				delta = std::max(delta, (float)fabs(u[i][j] - old));
+			}
+		}
+
+		std::cout << delta << std::endl;
+
+		iterations++;
+	}
+
+	std::cout << "Number of Iterations: " << iterations << std::endl;
+
+	return 0;
+}
+
+int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float omega)
+{
+	// Ensure that valid data was passed.
+	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
+		std::cerr << "Error[cpu_harmonic_gauss_seidel_2d]: Invalid data." << std::endl;
+		return 1;
+	}
+
+	unsigned int iterations = 0;
+	float delta = epsilon + 1.0f;
+
+	while (delta > epsilon) {
+		delta = 0.0f;
+
+		for (unsigned int i = 0; i < m[0]; i++) {
+			for (unsigned int j = 0; j < m[1]; j++) {
+				// If this is assigned a value, then skip it.
+				if (signbit(u[i][j])) {
+					continue;
+				}
+
+				// Compute the offsets, and ensure it does not go out of bounds.
+				unsigned int ip = std::min(m[0] - 1, i + 1);
+				unsigned int im = std::max(0, (int)i - 1);
+				unsigned int jp = std::min(m[1] - 1, j + 1);
+				unsigned int jm = std::max(0, (int)j - 1);
+
+				float old = u[i][j];
+
+				// Note: By construction of the for-loop, im and jm are actually the next iteration.
+				u[i][j] += omega * 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]) - 4.0f * fabs(u[i][j]));
+
+				// Compute delta, the difference between this iteration and the previous iteration.
+				delta = std::max(delta, (float)fabs(u[i][j] - old));
+			}
+		}
+
+		std::cout << delta << std::endl;
+
+		iterations++;
+	}
+
+	std::cout << "Number of Iterations: " << iterations << std::endl;
 
 	return 0;
 }
