@@ -26,12 +26,12 @@
 
 #include "../include/gpu.h"
 
-__global__ void gpu_harmonic_iteration_2d(unsigned int *m, float *u, float *uPrime, float epsilon) //, unsigned long long int *running)
+__global__ void gpu_harmonic_iteration_2d(unsigned int *m, float *u, float *uPrime, float epsilon, unsigned long long int *running)
 {
-	unsigned int i = blockIdx.x;
-	unsigned int j = threadIdx.x;
+	unsigned int i = blockIdx.x % m[0];
+	unsigned int j = threadIdx.x + (unsigned int)(blockIdx.x / m[0]) * blockDim.x;
 
-	if (i >= m[0] || j >= m[1]) {
+	if (i >= m[0] || j >= m[1] || signbit(u[i * m[1] + j]) != 0) {
 		return;
 	}
 
@@ -40,7 +40,15 @@ __global__ void gpu_harmonic_iteration_2d(unsigned int *m, float *u, float *uPri
 	unsigned int jp = min(m[1] - 1, j + 1);
 	unsigned int jm = max(0, (int)j - 1);
 
-	uPrime[i * m[1] + j] = 0.25f * (u[ip * m[1] + j] + u[im * m[1] + j] + u[i * m[1] + jp] + u[i * m[1] + jm]);
+	float val = 0.25f *
+			(fabsf(u[ip * m[1] + j]) +
+			fabsf(u[im * m[1] + j]) +
+			fabsf(u[i * m[1] + jp]) +
+			fabsf(u[i * m[1] + jm]));
+
+	*running = *running + (unsigned long long int)(fabsf(val - u[i * m[1] + j]) > epsilon);
+
+	uPrime[i * m[1] + j] = val;
 }
 
 int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
@@ -95,7 +103,7 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 	}
 
 	// Also ensure that the number of threads executed are valid.
-	unsigned int numBlocks = (unsigned int)((m[0] * m[1]) / numThreads) + 1;
+	unsigned int numBlocks = m[0] * ((unsigned int)(m[1] / numThreads) + 1);
 	if (numThreads % 32 != 0) {
 		std::cerr << "Error[gpu_harmonic_execute_2d]: Must specify a number of threads divisible by 32 (the number of threads in a warp)." << std::endl;
 		return 1;
@@ -107,56 +115,51 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 		return 1;
 	}
 
-	// Allocate a heap for dynamic memory allocation inside a kernel. This is required if you ever want
-	// to dynamically allocate memory inside kernels. We also know the size of the heap in the worst-case,
-	// since each thread will need exactly n. We'll make this 2x the size though, just in case.
-//	cudaThreadSetLimit(cudaLimitMallocHeapSize, 128 * 1024 * 1024);
-	cudaThreadSetLimit(cudaLimitMallocHeapSize, 2 * m[0] * m[1]);
-
 	// Create the running value, which keeps the iterations going so long as at least one element needs updating.
-//	unsigned long long int *running = new unsigned long long int[1];
-//	*running = 0;
-//
-//	unsigned long long int *d_running = nullptr;
-//	if (cudaMalloc(&d_running, sizeof(unsigned long long int)) != cudaSuccess) {
-//		std::cerr << Error[gpu_harmonic_execute_2d]: Failed to allocate device-side memory for the running variable." << std::endl;
-//		return 2;
-//	}
+	unsigned long long int *running = new unsigned long long int[1];
+	*running = 1;
+
+	unsigned long long int *d_running = nullptr;
+	if (cudaMalloc(&d_running, sizeof(unsigned long long int)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to allocate device-side memory for the running variable." << std::endl;
+		return 2;
+	}
 
 	// Iterate until convergence.
 	unsigned long long int iterations = 0;
 
 	// Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
-	while (iterations <= 200) {
-//	while (running > 0) {
-//		// Reset delta on the device.
-//		if (iterations % stagger == 0) {
-//			*running = 0;
-//
-//			if (cudaMemcpy(d_running, running, sizeof(unsigned long long int), cudaMemcpyHostToDevice) != cudaSuccess) {
-//				std::cerr << "Error[gpu_harmonic_execute_2d]: "Failed to copy running object from host to device." << std::endl;
-//				return 3;
-//			}
-//		}
+//	while (iterations <= 200) {
+	while (*running > 0) {
+		unsigned int stagger = 100;
 
-std::cout << "Iteration " << iterations;
+		// Reset delta on the device.
+		if (iterations % stagger == 0) {
+			*running = 0;
+
+			if (cudaMemcpy(d_running, running, sizeof(unsigned long long int), cudaMemcpyHostToDevice) != cudaSuccess) {
+				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from host to device." << std::endl;
+				return 3;
+			}
+		}
 
 		// Perform one step of the iteration.
 		if (iterations % 2 == 0) {
-std::cout << " first" << std::endl;
-			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_u, d_uPrime, epsilon); //, d_running);
+			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_u, d_uPrime, epsilon, d_running);
 		} else {
-std::cout << " second" << std::endl;
-			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_uPrime, d_u, epsilon); //, d_running);
+			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_uPrime, d_u, epsilon, d_running);
 		}
 
-//		// Copy the running value computed by each thread back to the host.
-//		if (iterations % stagger == 0) {
-//			if (cudaMemcpy(running, d_running, sizeof(unsigned long long int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-//				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from device to host." << std::endl;
-//				return 3;
-//			}
-//		}
+		// Wait for the kernel to finish before looping more.
+		cudaDeviceSynchronize();
+
+		// Copy the running value computed by each thread back to the host.
+		if (iterations % stagger == 0) {
+			if (cudaMemcpy(running, d_running, sizeof(unsigned long long int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from device to host." << std::endl;
+				return 3;
+			}
+		}
 
 		iterations++;
 	}
@@ -164,11 +167,11 @@ std::cout << " second" << std::endl;
 	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory of the delta value.
-//	delete [] running;
-//	if (cudaFree(d_running) != cudaSuccess) {
-//		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to free memory for the running flag." << std::endl;
-//		return 4;
-//	}
+	delete [] running;
+	if (cudaFree(d_running) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to free memory for the running flag." << std::endl;
+		return 4;
+	}
 
 	return 0;
 }

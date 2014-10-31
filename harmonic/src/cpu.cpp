@@ -78,7 +78,7 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 		iterations++;
 	}
 
-	std::cout << "Number of Iterations: " << iterations << std::endl;
+	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory allocated!
 	for (int i = 0; i < m[0]; i++) {
@@ -126,12 +126,10 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon
 			}
 		}
 
-		std::cout << delta << std::endl;
-
 		iterations++;
 	}
 
-	std::cout << "Number of Iterations: " << iterations << std::endl;
+	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	return 0;
 }
@@ -173,12 +171,10 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float o
 			}
 		}
 
-		std::cout << delta << std::endl;
-
 		iterations++;
 	}
 
-	std::cout << "Number of Iterations: " << iterations << std::endl;
+	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	return 0;
 }

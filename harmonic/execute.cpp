@@ -22,8 +22,9 @@
  */
 
 
-#include <stdio.h>
+#include <iostream>
 #include <cstdlib>
+#include <ctime>
 
 #include "include/worlds.h"
 #include "include/naive.h"
@@ -32,72 +33,53 @@
 
 int main(int argc, char *argv[])
 {
-	unsigned int version = 0;
+	unsigned int version = 1; // 0 = CPU, 1 = GPU
+	unsigned int cpuVariant = 2; // 0 = Jacobi, 1 = Gauss-Seidel, 2 = SOR
+	unsigned int numThreads = 256;
+
+	float epsilon = 0.0001f;
+
+	unsigned int size = 256;
+	unsigned int numObstacles = 100;
+	unsigned int maxObstacleSize = 100;
+
+	bool printResult = false;
 
 	srand(1);
 
-	if (version == 0) { // CUDA
-		unsigned int *m = nullptr;
-		float *h = nullptr;
-
-		//* ----- Simple World -----
-		create_simple_world_1d(m, h);
-		//*/
-
-		/* ----- Variable World -----
-		// Note: Only works with equal dimension sizes!!! Bug with index math somewhere...
-		create_variable_world_1d(64, 64, m, h, 10, 10);
-		//*/
-
-		unsigned int *d_m;
-		float *d_u;
-		float *d_uPrime;
-
-		// Setup the number of blocks and threads so that we have enough to execute all the threads.
-		unsigned int b[3];
-		b[0] = 6; b[1] = 6; b[2] = 4; // Equivalent to 3 * 3 * 3 = 18 blocks.
-		unsigned int t[3];
-		t[0] = 8; t[1] = 8; t[2] = 8; // Equivalent to 8 * 8 * 8 = 512 threads.
-
-		// Allocate and execute Jacobi iteration on the GPU (naive version).
-		if (harmonic_alloc(2, m, h, d_m, d_u, d_uPrime) != 0) {
-			return 1;
-		}
-		if (harmonic_execute(2, m, 0.01f, d_m, d_u, d_uPrime, b, t, 25) != 0) {
-			return 1;
-		}
-
-		// Get the world from the GPU and print it.
-		float *u = new float[m[0] * m[1]];
-
-		harmonic_get(2, m, d_u, u);
-		print_world_1d(m, u);
-
-		// Release everything.
-		if (harmonic_free(d_m, d_u, d_uPrime) != 0) {
-			return 1;
-		}
-		delete [] u;
-		delete [] m;
-		delete [] h;
-	} else if (version == 1) { // CPU
+	if (version == 0) { // CPU
 		unsigned int *m = nullptr;
 		float **u = nullptr;
 
-		//* ----- Simple World -----
+		/* ----- Simple World -----
 		create_simple_world_2d(m, u);
 		//*/
 
-		/* ----- Variable World -----
+		//* ----- Variable World -----
 		// Note: Only works with equal dimension sizes!!! Bug with index math somewhere...
-		create_variable_world_2d(256, 32, m, u, 10, 15);
+		create_variable_world_2d(size, size, m, u, numObstacles, maxObstacleSize);
 		//*/
 
+		// ***** START TIMER *****
+		time_t start = time(0);
+
 		// Solve it and print it out.
-		cpu_harmonic_jacobi_2d(m, u, 0.001f);
-//		cpu_harmonic_gauss_seidel_2d(m, u, 0.001f);
-//		cpu_harmonic_sor_2d(m, u, 0.001f, 1.5f);
-		print_world_2d(m, u);
+		if (cpuVariant == 0) {
+			cpu_harmonic_jacobi_2d(m, u, epsilon);
+		} else if (cpuVariant == 1) {
+			cpu_harmonic_gauss_seidel_2d(m, u, 0.001f);
+		} else if (cpuVariant == 2) {
+			cpu_harmonic_sor_2d(m, u, 0.001f, 1.5f);
+		}
+
+		// ***** STOP TIMER *****
+		time_t stop = time(0);
+		double elapsed = difftime(stop, start) * 1000.0;
+		std:: cout << "Elapsed Time (in seconds): " << elapsed << std::endl;
+
+		if (printResult) {
+			print_world_2d(m, u);
+		}
 
 		// Release everything.
 		for (int i = 0; i < m[0]; i++) {
@@ -105,24 +87,26 @@ int main(int argc, char *argv[])
 		}
 		delete [] u;
 		delete [] m;
-	} else if (version == 2) { // CUDA
+	} else if (version == 1) { // CUDA
 		unsigned int *m = nullptr;
 		float *u = nullptr;
 
-		//* ----- Simple World -----
+		/* ----- Simple World -----
 		create_simple_world_1d(m, u);
 		//*/
 
-		/* ----- Variable World -----
-		create_variable_world_2d(256, 32, m, u, 10, 15);
+		//* ----- Variable World -----
+		// Performance Note: Ensure rows and cols are divisible by 32 or 64 to guarantee 4 byte word
+		// alignment (since they are floats and don't require padding).
+		create_variable_world_1d(size, size, m, u, numObstacles, maxObstacleSize);
 		//*/
+
+		// ***** START TIMER *****
+		time_t start = time(0);
 
 		unsigned int *d_m;
 		float *d_u;
 		float *d_uPrime;
-
-		float epsilon = 0.01f;
-		unsigned int numThreads = 256;
 
 		// Allocate and execute Jacobi iteration on the GPU (naive version).
 		if (gpu_harmonic_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
@@ -132,9 +116,16 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
+		// ***** STOP TIMER *****
+		time_t stop = time(0);
+		double elapsed = difftime(stop, start) * 1000.0;
+		std:: cout << "Elapsed Time (in seconds): " << elapsed << std::endl;
+
 		// Get the world from the GPU and print it.
-		gpu_harmonic_get_2d(m, d_u, u);
-		print_world_1d(m, u);
+		if (printResult) {
+			gpu_harmonic_get_2d(m, d_u, u);
+			print_world_1d(m, u);
+		}
 
 		// Release everything.
 		if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {

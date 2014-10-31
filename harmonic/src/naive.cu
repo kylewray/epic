@@ -281,7 +281,7 @@ int harmonic_execute(unsigned int n, const unsigned int *m, float epsilon,
 
 	// Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
 	while (iterations <= 200) {
-//	while (running > 0) {
+//	while (*running > 0) {
 //		// Reset delta on the device.
 //		if (iterations % stagger == 0) {
 //			*running = 0;
