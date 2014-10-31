@@ -26,21 +26,25 @@
 
 #include "../include/gpu.h"
 
-__global__ void gpu_harmonic_iteration_2d(unsigned int *m, float **u, float **uPrime, float epsilon) //, unsigned long long int *running)
+__global__ void gpu_harmonic_iteration_2d(unsigned int *m, float *u, float *uPrime, float epsilon) //, unsigned long long int *running)
 {
 	unsigned int i = blockIdx.x;
 	unsigned int j = threadIdx.x;
+
+	if (i >= m[0] || j >= m[1]) {
+		return;
+	}
 
 	unsigned int ip = min(m[0] - 1, i + 1);
 	unsigned int im = max(0, (int)i - 1);
 	unsigned int jp = min(m[1] - 1, j + 1);
 	unsigned int jm = max(0, (int)j - 1);
 
-	uPrime[i][j] = 0.25f * (u[ip][j] + u[im][j] + u[i][jp] + u[i][jm]);
+	uPrime[i * m[1] + j] = 0.25f * (u[ip * m[1] + j] + u[im * m[1] + j] + u[i * m[1] + jp] + u[i * m[1] + jm]);
 }
 
-int gpu_harmonic_alloc_2d(const unsigned int *m, const float **u,
-		unsigned int *&d_m, float **&d_u, float **&d_uPrime)
+int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
+		unsigned int *&d_m, float *&d_u, float *&d_uPrime)
 {
 	// Ensure the data is valid.
 	if (u == nullptr || m == nullptr || m[0] == 0 || m[1] == 0) {
@@ -80,12 +84,13 @@ int gpu_harmonic_alloc_2d(const unsigned int *m, const float **u,
 	return 0;
 }
 
-int gpu_harmonic_execute_2d(const unsigned int *m, float epsilon,
-		unsigned int *d_m, float **d_u, float **d_uPrime,
+int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
+		unsigned int *d_m, float *d_u, float *d_uPrime,
 		unsigned int numThreads)
 {
 	// Ensure the data is valid.
 	if (m == nullptr || epsilon <= 0.0f || d_m == nullptr || d_u == nullptr || numThreads == 0) {
+		std::cerr << "Error[gpu_harmonic_execute_2d]: Invalid data." << std::endl;
 		return 1;
 	}
 
@@ -168,7 +173,7 @@ std::cout << " second" << std::endl;
 	return 0;
 }
 
-int gpu_harmonic_get_2d(const unsigned int *m, float **d_u, float **u)
+int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u)
 {
 	if (cudaMemcpy(u, d_u, m[0] * m[1] * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
 		std::cerr << "Error[harmonic_get]: Failed to copy memory from device to host for the entire result." << std::endl;
@@ -177,7 +182,7 @@ int gpu_harmonic_get_2d(const unsigned int *m, float **d_u, float **u)
 	return 0;
 }
 
-int gpu_harmonic_free_2d(unsigned int *d_m, float **d_u, float **d_uPrime)
+int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime)
 {
 	if (cudaFree(d_m) != cudaSuccess) {
 		std::cerr << "Error[harmonic_free]: Failed to free memory for the dimension sizes." << std::endl;

@@ -38,8 +38,8 @@
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_alloc_2d(const unsigned int *m, const float **u,
-		unsigned int *&d_m, float **&d_u, float **&d_uPrime);
+int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
+		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
 
 /**
  * Iterate the harmonic function solver which uses the Jacobi method.
@@ -51,8 +51,8 @@ int gpu_harmonic_alloc_2d(const unsigned int *m, const float **u,
  * @param	numThreads	The number of threads to run per block.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_execute_2d(const unsigned int *m, float epsilon,
-		unsigned int *d_m, float **d_u, float **d_uPrime,
+int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
+		unsigned int *d_m, float *d_u, float *d_uPrime,
 		unsigned int numThreads);
 
 /**
@@ -62,7 +62,7 @@ int gpu_harmonic_execute_2d(const unsigned int *m, float epsilon,
  * @param	u		The entire matrix of values, which is assumed to be created in memory already.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_get_2d(const unsigned int *m, float **d_u, float **u);
+int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u);
 
 /**
  * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.)
@@ -71,7 +71,7 @@ int gpu_harmonic_get_2d(const unsigned int *m, float **d_u, float **u);
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_free_2d(unsigned int *d_m, float **d_u, float **d_uPrime);
+int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime);
 
 
 #endif // GPU_H
