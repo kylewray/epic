@@ -24,26 +24,103 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
+//#include <ctime>
+#include <sys/time.h>
 
 #include "include/worlds.h"
 #include "include/naive.h"
 #include "include/cpu.h"
 #include "include/gpu.h"
 
-int main(int argc, char *argv[])
+long long get_current_time()
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+}
+
+int trials_2d(unsigned int numThreads, float epsilon,
+		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
+		unsigned int numObstacles)
+{
+	std::cout << "N (Size)\t,\tCPU Time (s)\t,\tGPU Time (s)" << std::endl;
+
+	for (unsigned int size = minSize; size <= maxSize; size += stepSize) {
+		unsigned int maxObstacleSize = size / 2;
+
+		std::cout << size << "\t,\t";
+		std::cout.flush();
+
+		// Create the world ouside of timing.
+		unsigned int *cpu_m = nullptr;
+		float **cpu_u = nullptr;
+		create_variable_world_2d(size, size, cpu_m, cpu_u, numObstacles, maxObstacleSize);
+
+//		std::clock_t start = std::clock();
+		long long start = get_current_time();
+
+		cpu_harmonic_sor_2d(cpu_m, cpu_u, epsilon, 1.5f);
+
+//		std::cout << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000.0) << "\t\t";
+		std::cout << (double)(get_current_time() - start) / 1000.0 << "\t,\t";
+		std::cout.flush();
+
+		// Cleanup the world.
+		for (int i = 0; i < cpu_m[0]; i++) {
+			delete [] cpu_u[i];
+		}
+		delete [] cpu_u;
+		delete [] cpu_m;
+
+		// Create the world again outside of timing.
+		unsigned int *gpu_m = nullptr;
+		float *gpu_u = nullptr;
+		create_variable_world_1d(size, size, gpu_m, gpu_u, numObstacles, maxObstacleSize);
+
+//		start = std::clock();
+		start = get_current_time();
+
+		unsigned int *d_m;
+		float *d_u;
+		float *d_uPrime;
+
+		if (gpu_harmonic_alloc_2d(gpu_m, gpu_u, d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+		if (gpu_harmonic_execute_2d(gpu_m, epsilon, d_m, d_u, d_uPrime, numThreads) != 0) {
+			return 1;
+		}
+
+//		std::cout << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000.0) << "\t\t";
+		std::cout << (double)(get_current_time() - start) / 1000.0 << "\t,\t";
+		std::cout.flush();
+
+		// Cleanup the world.
+		if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+		delete [] gpu_u;
+		delete [] gpu_m;
+
+		std::cout << std::endl;
+	}
+
+	return 0;
+}
+
+int single_trial_2d()
 {
 	unsigned int version = 1; // 0 = CPU, 1 = GPU
 	unsigned int cpuVariant = 2; // 0 = Jacobi, 1 = Gauss-Seidel, 2 = SOR
-	unsigned int numThreads = 256;
+	unsigned int numThreads = 512;
 
 	float epsilon = 0.0001f;
 
-	unsigned int size = 256;
-	unsigned int numObstacles = 100;
-	unsigned int maxObstacleSize = 100;
+	unsigned int size = 512;
+	unsigned int numObstacles = 10;
+	unsigned int maxObstacleSize = 50;
 
-	bool printResult = false;
+	bool printResult = true;
 
 	srand(1);
 
@@ -67,9 +144,9 @@ int main(int argc, char *argv[])
 		if (cpuVariant == 0) {
 			cpu_harmonic_jacobi_2d(m, u, epsilon);
 		} else if (cpuVariant == 1) {
-			cpu_harmonic_gauss_seidel_2d(m, u, 0.001f);
+			cpu_harmonic_gauss_seidel_2d(m, u, epsilon);
 		} else if (cpuVariant == 2) {
-			cpu_harmonic_sor_2d(m, u, 0.001f, 1.5f);
+			cpu_harmonic_sor_2d(m, u, epsilon, 1.5f);
 		}
 
 		// ***** STOP TIMER *****
@@ -134,6 +211,18 @@ int main(int argc, char *argv[])
 		delete [] u;
 		delete [] m;
 	}
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+//	single_trial_2d();
+
+	trials_2d(128, 0.0001f, 128, 128, 32, 10);
+	trials_2d(256, 0.0001f, 256, 256, 32, 10);
+	trials_2d(512, 0.0001f, 512, 512, 32, 10);
+//	trials_2d(512, 0.0001f, 1024, 1024, 32, 10);
 
 	return 0;
 }

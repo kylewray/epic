@@ -148,7 +148,7 @@ void create_variable_world_1d(unsigned int mRows, unsigned int mCols, unsigned i
 	}
 	h[r * m[1] + c] = -0.0f;
 
-	printf("Goal Cell: (%i, %i)\n", r, c);
+//	printf("Goal Cell: (%i, %i)\n", r, c);
 }
 
 void create_variable_world_2d(unsigned int mRows, unsigned int mCols, unsigned int *&m, float **&h,
@@ -203,7 +203,7 @@ void create_variable_world_2d(unsigned int mRows, unsigned int mCols, unsigned i
 	}
 	h[r][c] = -0.0f;
 
-	printf("Goal Cell: (%i, %i)\n", r, c);
+//	printf("Goal Cell: (%i, %i)\n", r, c);
 }
 
 void print_world_1d(unsigned int *m, float *u)

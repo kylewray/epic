@@ -164,7 +164,7 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 		iterations++;
 	}
 
-	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory of the delta value.
 	delete [] running;
