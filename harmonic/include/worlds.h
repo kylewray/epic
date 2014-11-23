@@ -32,30 +32,47 @@
  * @param	m	The dimensions of the world.
  * @param	h	The resulting harmonic function.
  */
-void create_simple_world_1d(unsigned int *&m, float *&h);
-void create_simple_world_2d(unsigned int *&m, float **&h);
+void create_simple_world_2d(unsigned int *&m, float *&h);
 
 /**
- * Create a variable mRows-by-mCols world with a random number of rectangles.
- * @param	mRows			The number of rows of the world.
- * @param	mCols			The number of columns of the world.
- * @param	m				The resulting dimensions of the world.
+ * Print out the world provided.
+ * @param	m	The dimensions of the world.
+ * @param	u	The resulting u function.
+ */
+void print_world_2d(unsigned int *m, float *u);
+
+/**
+ * Create a variable m1-by-m2 world with a random number of rectangles.
+ * @param	m				The dimensions of the world (must be an array of size 2).
  * @param	h				The resulting harmonic function.
  * @param	numRectangles	The number of rectangles to randomly place.
  * @param	maxSize			The maximum width and height of the rectangles.
  */
-void create_variable_world_1d(unsigned int mRows, unsigned int mCols, unsigned int *&m, float *&h,
-		unsigned int numRectangles, unsigned int maxSize);
-void create_variable_world_2d(unsigned int mRows, unsigned int mCols, unsigned int *&m, float **&h,
-		unsigned int numRectangles, unsigned int maxSize);
+void create_variable_world_2d(const unsigned int *m, float *&h, unsigned int numRectangles, unsigned int maxSize);
+
+/*
+ * Create a simple 10-by-10-by-10 grid world with the upper left 5-by-5-by-5 blocked as an
+ * obstacle. The goal is on the bottom of this obstacle.
+ * @param	m	The dimensions of the world.
+ * @param	h	The resulting harmonic function.
+ */
+void create_simple_world_3d(unsigned int *&m, float *&h);
 
 /**
  * Print out the world provided.
- * @param	m		The dimensions of the world.
- * @param	u		The resulting u function.
+ * @param	m	The dimensions of the world.
+ * @param	u	The resulting u function.
  */
-void print_world_1d(unsigned int *m, float *u);
-void print_world_2d(unsigned int *m, float **u);
+void print_world_3d(unsigned int *m, float *u);
+
+/**
+ * Create a variable m1-by-m2-by-m3 world with a random number of rectangles.
+ * @param	m				The dimensions of the world (must be an array of size 3).
+ * @param	h				The resulting harmonic function.
+ * @param	numRectangles	The number of rectangles to randomly place.
+ * @param	maxSize			The maximum width and height of the rectangles.
+ */
+void create_variable_world_3d(const unsigned int *m, float *&h, unsigned int numRectangles, unsigned int maxSize);
 
 
 #endif // WORLDS_H

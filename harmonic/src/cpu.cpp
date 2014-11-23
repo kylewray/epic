@@ -27,7 +27,7 @@
 
 #include "../include/cpu.h"
 
-int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
+int cpu_harmonic_jacobi_2d(const unsigned int *m, float *u, float epsilon)
 {
 	// Ensure that valid data was passed.
 	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
@@ -36,12 +36,9 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 	}
 
 	// Create a copy of u to oscillate between u and uPrime during iteration.
-	float **uPrime = new float *[m[0]];
-	for (int i = 0; i < m[0]; i++) {
-		uPrime[i] = new float[m[1]];
-		for (int j = 0; j < m[1]; j++) {
-			uPrime[i][j] = u[i][j];
-		}
+	float *uPrime = new float [m[0] * m[1]];
+	for (int i = 0; i < m[0] * m[1]; i++) {
+		uPrime[i] = u[i];
 	}
 
 	unsigned int iterations = 0;
@@ -53,7 +50,7 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 		for (unsigned int i = 0; i < m[0]; i++) {
 			for (unsigned int j = 0; j < m[1]; j++) {
 				// If this is assigned a value, then skip it.
-				if (signbit(u[i][j])) {
+				if (signbit(u[i * m[1] + j])) {
 					continue;
 				}
 
@@ -65,13 +62,13 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 
 				// Swap between updating u and uPrime.
 				if (iterations % 2 == 0) {
-					uPrime[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
+					uPrime[i * m[1] + j] = 0.25f * (fabs(u[ip * m[1] + j]) + fabs(u[im * m[1] + j]) + fabs(u[i * m[1] + jp]) + fabs(u[i * m[1] + jm]));
 				} else {
-					u[i][j] = 0.25f * (fabs(uPrime[ip][j]) + fabs(uPrime[im][j]) + fabs(uPrime[i][jp]) + fabs(uPrime[i][jm]));
+					u[i * m[1] + j] = 0.25f * (fabs(uPrime[ip * m[1] + j]) + fabs(uPrime[im * m[1] + j]) + fabs(uPrime[i * m[1] + jp]) + fabs(uPrime[i * m[1] + jm]));
 				}
 
 				// Compute delta, the difference between this iteration and the previous iteration.
-				delta = std::max(delta, (float)fabs(u[i][j] - uPrime[i][j]));
+				delta = std::max(delta, (float)fabs(u[i * m[1] + j] - uPrime[i * m[1] + j]));
 			}
 		}
 
@@ -81,15 +78,12 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon)
 //	std::cout << "Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory allocated!
-	for (int i = 0; i < m[0]; i++) {
-		delete [] uPrime[i];
-	}
 	delete [] uPrime;
 
 	return 0;
 }
 
-int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon)
+int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float *u, float epsilon)
 {
 	// Ensure that valid data was passed.
 	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
@@ -106,7 +100,7 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon
 		for (unsigned int i = 0; i < m[0]; i++) {
 			for (unsigned int j = 0; j < m[1]; j++) {
 				// If this is assigned a value, then skip it.
-				if (signbit(u[i][j])) {
+				if (signbit(u[i * m[1] + j])) {
 					continue;
 				}
 
@@ -116,13 +110,13 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon
 				unsigned int jp = std::min(m[1] - 1, j + 1);
 				unsigned int jm = std::max(0, (int)j - 1);
 
-				float old = u[i][j];
+				float old = u[i * m[1] + j];
 
 				// Note: By construction of the for-loop, im and jm are actually the next iteration.
-				u[i][j] = 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]));
+				u[i * m[1] + j] = 0.25f * (fabs(u[ip * m[1] + j]) + fabs(u[im * m[1] + j]) + fabs(u[i * m[1] + jp]) + fabs(u[i * m[1] + jm]));
 
 				// Compute delta, the difference between this iteration and the previous iteration.
-				delta = std::max(delta, (float)fabs(u[i][j] - old));
+				delta = std::max(delta, (float)fabs(u[i * m[1] + j] - old));
 			}
 		}
 
@@ -134,7 +128,7 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon
 	return 0;
 }
 
-int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float omega)
+int cpu_harmonic_sor_2d(const unsigned int *m, float *u, float epsilon, float omega)
 {
 	// Ensure that valid data was passed.
 	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
@@ -151,7 +145,7 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float o
 		for (unsigned int i = 0; i < m[0]; i++) {
 			for (unsigned int j = 0; j < m[1]; j++) {
 				// If this is assigned a value, then skip it.
-				if (signbit(u[i][j])) {
+				if (signbit(u[i * m[1] + j])) {
 					continue;
 				}
 
@@ -161,13 +155,69 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float o
 				unsigned int jp = std::min(m[1] - 1, j + 1);
 				unsigned int jm = std::max(0, (int)j - 1);
 
-				float old = u[i][j];
+				float old = u[i * m[1] + j];
 
 				// Note: By construction of the for-loop, im and jm are actually the next iteration.
-				u[i][j] += omega * 0.25f * (fabs(u[ip][j]) + fabs(u[im][j]) + fabs(u[i][jp]) + fabs(u[i][jm]) - 4.0f * fabs(u[i][j]));
+				u[i * m[1] + j] += omega * 0.25f * (fabs(u[ip * m[1] + j]) + fabs(u[im * m[1] + j]) + fabs(u[i * m[1] + jp]) + fabs(u[i * m[1] + jm]) - 4.0f * fabs(u[i * m[1] + j]));
 
 				// Compute delta, the difference between this iteration and the previous iteration.
-				delta = std::max(delta, (float)fabs(u[i][j] - old));
+				delta = std::max(delta, (float)fabs(u[i * m[1] + j] - old));
+			}
+		}
+
+		iterations++;
+	}
+
+//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+
+	return 0;
+}
+
+int cpu_harmonic_sor_3d(const unsigned int *m, float *u, float epsilon, float omega)
+{
+	// Ensure that valid data was passed.
+	if (m == nullptr || u == nullptr || epsilon <= 0.0f) {
+		std::cerr << "Error[cpu_harmonic_gauss_seidel_3d]: Invalid data." << std::endl;
+		return 1;
+	}
+
+	unsigned int iterations = 0;
+	float delta = epsilon + 1.0f;
+
+	while (delta > epsilon) {
+		delta = 0.0f;
+
+		for (unsigned int i = 0; i < m[0]; i++) {
+			for (unsigned int j = 0; j < m[1]; j++) {
+				for (unsigned int k = 0; k < m[2]; k++) {
+					// If this is assigned a value, then skip it.
+					if (signbit(u[i * m[1] * m[2] + j * m[2] + k])) {
+						continue;
+					}
+
+					// Compute the offsets, and ensure it does not go out of bounds.
+					unsigned int ip = std::min(m[0] - 1, i + 1);
+					unsigned int im = std::max(0, (int)i - 1);
+					unsigned int jp = std::min(m[1] - 1, j + 1);
+					unsigned int jm = std::max(0, (int)j - 1);
+					unsigned int kp = std::min(m[2] - 1, k + 1);
+					unsigned int km = std::max(0, (int)k - 1);
+
+					float old = u[i * m[1] * m[2] + j * m[2] + k];
+
+					// Note: By construction of the for-loop, im, jm, and km are actually the next iteration.
+					u[i * m[1] * m[2] + j * m[2] + k] += omega * 0.166666666667f * (
+							fabs(u[ip * m[1] * m[2] + j * m[2] + k]) +
+							fabs(u[im * m[1] * m[2] + j * m[2] + k]) +
+							fabs(u[i * m[1] * m[2] + jp * m[2] + k]) +
+							fabs(u[i * m[1] * m[2] + jm * m[2] + k]) +
+							fabs(u[i * m[1] * m[2] + j * m[2] + kp]) +
+							fabs(u[i * m[1] * m[2] + j * m[2] + km]) -
+							6.0f * fabs(u[i * m[1] * m[2] + j * m[2] + k]));
+
+					// Compute delta, the difference between this iteration and the previous iteration.
+					delta = std::max(delta, (float)fabs(u[i * m[1] * m[2] + j * m[2] + k] - old));
+				}
 			}
 		}
 

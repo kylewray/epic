@@ -43,7 +43,7 @@ int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
 
 /**
  * Iterate the harmonic function solver which uses the Jacobi method.
- * @param	m			The n-dimensional array, specifying the dimensions for each dimension.
+ * @param	m			The 2-dimensional array, specifying the dimensions for each dimension.
  * @param	epsilon		The max convergence check.
  * @param	d_m			The memory address for the dimension sizes on the device.
  * @param	d_u			The memory address on the device for the discrete values on the device.
@@ -57,7 +57,7 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 
 /**
  * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)
- * @param	m		The n-dimensional array, specifying the dimensions for each dimension.
+ * @param	m		The 2-dimensional array, specifying the dimensions for each dimension.
  * @param	d_u		The memory address on the device for the discrete values on the device.
  * @param	u		The entire matrix of values, which is assumed to be created in memory already.
  * @return	Return 0 if no error, 1 if an error occurred.
@@ -72,6 +72,50 @@ int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u);
  * @return	Return 0 if no error, 1 if an error occurred.
  */
 int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime);
+
+/**
+ * Allocate and transfer the 3-dimensional harmonic function to the device. (Used for the Jacobi method.)
+ * @param	m			The 3-dimensional array, specifying the size of each dimension.
+ * @param	u			The harmonic function as an array following the dimensions of m.
+ * @param	d_m			The resulting memory address for the dimension sizes on the device.
+ * @param	d_u			The resulting memory address of the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
+		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
+
+/**
+ * Iterate the harmonic function solver which uses the Jacobi method.
+ * @param	m			The 3-dimensional array, specifying the dimensions for each dimension.
+ * @param	epsilon		The max convergence check.
+ * @param	d_m			The memory address for the dimension sizes on the device.
+ * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @param	numThreads	The number of threads to run per block.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
+		unsigned int *d_m, float *d_u, float *d_uPrime,
+		unsigned int numThreads);
+
+/**
+ * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)
+ * @param	m		The 3-dimensional array, specifying the dimensions for each dimension.
+ * @param	d_u		The memory address on the device for the discrete values on the device.
+ * @param	u		The entire matrix of values, which is assumed to be created in memory already.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_harmonic_get_3d(unsigned int *m, float *d_u, float *u);
+
+/**
+ * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.)
+ * @param	d_m			The memory address on the device for the dimension sizes.
+ * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_harmonic_free_3d(unsigned int *d_m, float *d_u, float *d_uPrime);
 
 
 #endif // GPU_H

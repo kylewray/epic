@@ -40,7 +40,7 @@
  * @param	epsilon The termination criterion.
  * @return	Either 0 if there was no error, or 1 if the parameters were invalid.
  */
-int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon);
+int cpu_harmonic_jacobi_2d(const unsigned int *m, float *u, float epsilon);
 
 /**
  * Compute the fixed point of the 2-dimensional harmonic function provided following
@@ -53,7 +53,7 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float **u, float epsilon);
  * @param	epsilon The termination criterion.
  * @return	Either 0 if there was no error, or 1 if the parameters were invalid.
  */
-int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon);
+int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float *u, float epsilon);
 
 /**
  * Compute the fixed point of the 2-dimensional harmonic function provided following
@@ -67,7 +67,21 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float **u, float epsilon
  * @param	omega	The relaxation parameter (step-size-like variable) for the SOR method.
  * @return	Either 0 if there was no error, or 1 if the parameters were invalid.
  */
-int cpu_harmonic_sor_2d(const unsigned int *m, float **u, float epsilon, float omega);
+int cpu_harmonic_sor_2d(const unsigned int *m, float *u, float epsilon, float omega);
+
+/**
+ * Compute the fixed point of the 3-dimensional harmonic function provided following
+ * the Successive-Over-Relaxation (SOR) method. The harmonic function u must be defined
+ * such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
+ * flipped. All other values will be modified in-place. The process terminates when the
+ * maximal change between any state is less than epsilon.
+ * @param	m		The number of dimensions.
+ * @param	u		The harmonic function (see above).
+ * @param	epsilon The termination criterion.
+ * @param	omega	The relaxation parameter (step-size-like variable) for the SOR method.
+ * @return	Either 0 if there was no error, or 1 if the parameters were invalid.
+ */
+int cpu_harmonic_sor_3d(const unsigned int *m, float *u, float epsilon, float omega);
 
 
 #endif // CPU_H
