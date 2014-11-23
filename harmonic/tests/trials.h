@@ -30,10 +30,10 @@
 #include <cstdlib>
 #include <sys/time.h>
 
-#include "include/worlds.h"
-#include "include/naive.h"
-#include "include/cpu.h"
-#include "include/gpu.h"
+#include "../include/worlds.h"
+#include "../include/naive.h"
+#include "../include/cpu.h"
+#include "../include/gpu.h"
 
 /**
  * Return the current time in milliseconds.

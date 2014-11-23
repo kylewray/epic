@@ -22,7 +22,7 @@
  */
 
 
-#include "trials.h"
+#include "tests/trials.h"
 
 int main(int argc, char *argv[])
 {
