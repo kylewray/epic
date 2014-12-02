@@ -44,7 +44,7 @@ long long get_current_time();
  * Perform a single 2D trial, given the number of arguments.
  * @return	Returns 0 if successful; non-zero otherwise.
  */
-int trials_2d(unsigned int numThreads, float epsilon,
+int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stagger, float epsilon,
 		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles);
 
@@ -58,8 +58,9 @@ int single_trial_2d();
  * Perform a single 3D trial, given the number of arguments.
  * @return	Returns 0 if successful; non-zero otherwise.
  */
-int trials_3d(unsigned int numThreads, float epsilon,
-		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
+int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+		unsigned int stagger,
+		float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles);
 
 /**

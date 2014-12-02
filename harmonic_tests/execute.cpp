@@ -30,21 +30,23 @@ int main(int argc, char *argv[])
 	// Each time vary the number of threads at the same speed. At the very end,
 	// we note that the number of threads is less than the size of the area, so
 	// we do blocks of threads in the awesome way.
-	trials_2d(128, 0.0001f, 128, 128, 32, 10);
-//	trials_2d(256, 0.0001f, 256, 256, 32, 10);
-//	trials_2d(512, 0.0001f, 512, 512, 32, 10);
-//	trials_2d(512, 0.0001f, 1024, 1024, 32, 10);
+//	trials_2d(128, 128, 20, 0.0001f, 128, 128, 32, 10);
+//	trials_2d(256, 256, 20, 0.0001f, 256, 256, 32, 10);
+//	trials_2d(512, 512, 20, 0.0001f, 512, 512, 32, 10);
+//	trials_2d(512, 512, 20, 0.0001f, 1024, 1024, 32, 10);
 
 //	single_trial_2d();
 
-//	trials_3d(32, 0.0001f, 32, 32, 32, 10);
-//	trials_3d(64, 0.0001f, 64, 64, 32, 10);
-//	trials_3d(96, 0.0001f, 96, 96, 32, 10);
-	trials_3d(128, 0.0001f, 128, 128, 32, 10);
-//	trials_3d(256, 0.0001f, 256, 256, 32, 10);
-//	trials_3d(512, 0.0001f, 512, 512, 32, 10);
+	// 24 * 24 = 576 ... 576 % 32 = 18
 
-//	single_trial_3d();
+//	trials_3d(32, 24, 24, 20, 0.0001f, 32, 32, 32, 10);
+//	trials_3d(64, 24, 24, 20, 0.0001f, 64, 64, 32, 10);
+//	trials_3d(96, 24, 24, 20, 0.0001f, 96, 96, 32, 10);
+//	trials_3d(128, 24, 24, 20, 0.0001f, 128, 128, 32, 10);
+//	trials_3d(256, 24, 24, 20, 0.0001f, 256, 256, 32, 10);
+//	trials_3d(512, 24, 24, 20, 0.0001f, 512, 512, 32, 10);
+
+	single_trial_3d();
 
 	return 0;
 }

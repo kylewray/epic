@@ -29,6 +29,10 @@
 #define nullptr NULL
 
 
+// Note: We only use "unsigned int" for indices. The assumption is that we will never have more
+// than the max value of an unsigned int: 4,294,967,295, number of states.
+
+
 /**
  * Allocate and transfer the 2-dimensional harmonic function to the device. (Used for the Jacobi method.)
  * @param	m			The 2-dimensional array, specifying the size of each dimension.
@@ -48,12 +52,15 @@ int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
  * @param	d_m			The memory address for the dimension sizes on the device.
  * @param	d_u			The memory address on the device for the discrete values on the device.
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @param	numBlocks	The number of blocks to execute.
  * @param	numThreads	The number of threads to run per block.
+ * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
 int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 		unsigned int *d_m, float *d_u, float *d_uPrime,
-		unsigned int numThreads);
+		unsigned int numBlocks, unsigned int numThreads,
+		unsigned int stagger);
 
 /**
  * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)
@@ -92,12 +99,16 @@ int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
  * @param	d_m			The memory address for the dimension sizes on the device.
  * @param	d_u			The memory address on the device for the discrete values on the device.
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
- * @param	numThreads	The number of threads to run per block.
+ * @param	numBlocks	The number of blocks to execute over the first dimension of u.
+ * @param	numThreadsX	The number of threads to execute over the second dimension of u.
+ * @param	numThreadsY	The number of threads to execute over the third dimension of u.
+ * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
 int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
 		unsigned int *d_m, float *d_u, float *d_uPrime,
-		unsigned int numThreads);
+		unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+		unsigned int stagger);
 
 /**
  * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)

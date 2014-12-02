@@ -28,32 +28,40 @@
 
 __global__ void gpu_harmonic_iteration_3d(unsigned int *m, float *u, float *uPrime, float epsilon, unsigned long long int *running)
 {
-	unsigned int i = blockIdx.x;
-	unsigned int j = blockIdx.y % m[1];
-	unsigned int k = threadIdx.x + (unsigned int)(blockIdx.y / m[1]) * blockDim.y;
+	for (unsigned int i = blockIdx.x; i < m[0]; i += gridDim.x) {
+		for (unsigned int j = threadIdx.x; j < m[1]; j += blockDim.x) {
+			for (unsigned int k = threadIdx.y; k < m[2]; k += blockDim.y) {
+				// Skip this if it is an obstacle. Perhaps it is better to actually just wastefully compute the
+				// equations below, instead of causing branch divergence.
+				if (signbit(u[i * m[1] * m[2] + j * m[2] + k]) != 0) {
+					return;
+				}
 
-	if (i >= m[0] || j >= m[1] || k >= m[2] || signbit(u[i * m[1] * m[2] + j * m[2] + k]) != 0) {
-		return;
+				// Since this solver assumes the boundary is fixed, we do not need to check min and max.
+				// Unless, you decide to merge the if statement into the equations below... then you need these.
+//				unsigned int ip = min(m[0] - 1, i + 1);
+//				unsigned int im = max(0, (int)i - 1);
+//				unsigned int jp = min(m[1] - 1, j + 1);
+//				unsigned int jm = max(0, (int)j - 1);
+//				unsigned int kp = min(m[2] - 1, k + 1);
+//				unsigned int km = max(0, (int)k - 1);
+
+				float val = 0.16666666667f *
+						(fabsf(u[(i + 1) * m[1] * m[2] + j * m[2] + k]) +
+						fabsf(u[(i - 1) * m[1] * m[2] + j * m[2] + k]) +
+						fabsf(u[i * m[1] * m[2] + (j + 1) * m[2] + k]) +
+						fabsf(u[i * m[1] * m[2] + (j - 1) * m[2] + k]) +
+						fabsf(u[i * m[1] * m[2] + j * m[2] + (k + 1)]) +
+						fabsf(u[i * m[1] * m[2] + j * m[2] + (k - 1)]));
+
+				// TODO: Convert this into a separate kernel with the first element assigning the boolean running to false.
+				// Then sync threads. Then set running to true if fabs(u[] - uPrime[]) > epsilon. Make running an unsigned int...
+				*running = *running + (unsigned long long int)(fabsf(val - u[i * m[1] * m[2] + j * m[2] + k]) > epsilon);
+
+				uPrime[i * m[1] * m[2] + j * m[2] + k] = val;
+			}
+		}
 	}
-
-	unsigned int ip = min(m[0] - 1, i + 1);
-	unsigned int im = max(0, (int)i - 1);
-	unsigned int jp = min(m[1] - 1, j + 1);
-	unsigned int jm = max(0, (int)j - 1);
-	unsigned int kp = min(m[2] - 1, k + 1);
-	unsigned int km = max(0, (int)k - 1);
-
-	float val = 0.16666666667f *
-			(fabsf(u[ip * m[1] * m[2] + j * m[2] + k]) +
-			fabsf(u[im * m[1] * m[2] + j * m[2] + k]) +
-			fabsf(u[i * m[1] * m[2] + jp * m[2] + k]) +
-			fabsf(u[i * m[1] * m[2] + jm * m[2] + k]) +
-			fabsf(u[i * m[1] * m[2] + j * m[2] + kp]) +
-			fabsf(u[i * m[1] * m[2] + j * m[2] + km]));
-
-	*running = *running + (unsigned long long int)(fabsf(val - u[i * m[1] * m[2] + j * m[2] + k]) > epsilon);
-
-	uPrime[i * m[1] * m[2] + j * m[2] + k] = val;
 }
 
 int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
@@ -99,25 +107,24 @@ int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
 
 int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
 		unsigned int *d_m, float *d_u, float *d_uPrime,
-		unsigned int numThreads)
+		unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+		unsigned int stagger)
 {
 	// Ensure the data is valid.
-	if (m == nullptr || epsilon <= 0.0f || d_m == nullptr || d_u == nullptr || numThreads == 0) {
+	if (m == nullptr || epsilon <= 0.0f || d_m == nullptr || d_u == nullptr || numThreadsX == 0 || numThreadsY == 0) {
 		std::cerr << "Error[gpu_harmonic_execute_3d]: Invalid data." << std::endl;
 		return 1;
 	}
 
 	// Also ensure that the number of threads executed are valid.
-	unsigned int numBlocksX = m[0];
-	unsigned int numBlocksY = m[1] * ((unsigned int)(m[2] / numThreads) + 1);
-	if (numThreads % 32 != 0) {
+	if (numThreadsX * numThreadsY % 32 != 0) {
 		std::cerr << "Error[gpu_harmonic_execute_3d]: Must specify a number of threads divisible by 32 (the number of threads in a warp)." << std::endl;
 		return 1;
 	}
 
-	// Now ensure that there are enough total threads (over all blocks) to run the solver.
-	if (numBlocksX * numBlocksY * numThreads < m[0] * m[1] * m[2]) {
-		std::cerr << "Error[gpu_harmonic_execute_3d]: Failed to specify enough blocks and threads to execute the solver." << std::endl;
+	// We must ensure that the stagger for convergence checking is even (i.e., num iterations), so that d_u stores the final result, not d_uPrime.
+	if (stagger % 2 == 1) {
+		std::cerr << "Error[gpu_harmonic_execute_3d]: Stagger for convergence checking must be even." << std::endl;
 		return 1;
 	}
 
@@ -134,11 +141,8 @@ int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
 	// Iterate until convergence.
 	unsigned long long int iterations = 0;
 
-	// Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
-//	while (iterations <= 200) {
+	// Important Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
 	while (*running > 0) {
-		unsigned int stagger = 100;
-
 		// Reset delta on the device.
 		if (iterations % stagger == 0) {
 			*running = 0;
@@ -149,11 +153,11 @@ int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
 			}
 		}
 
-		// Perform one step of the iteration.
+		// Perform one step of the iteration, either using u and storing in uPrime, or vice versa.
 		if (iterations % 2 == 0) {
-			gpu_harmonic_iteration_3d<<< dim3(numBlocksX, numBlocksY), numThreads >>>(d_m, d_u, d_uPrime, epsilon, d_running);
+			gpu_harmonic_iteration_3d<<< numBlocks, dim3(numThreadsX, numThreadsY) >>>(d_m, d_u, d_uPrime, epsilon, d_running);
 		} else {
-			gpu_harmonic_iteration_3d<<< dim3(numBlocksX, numBlocksY), numThreads >>>(d_m, d_uPrime, d_u, epsilon, d_running);
+			gpu_harmonic_iteration_3d<<< numBlocks, dim3(numThreadsX, numThreadsY) >>>(d_m, d_uPrime, d_u, epsilon, d_running);
 		}
 
 		// Wait for the kernel to finish before looping more.

@@ -24,8 +24,8 @@
 
 #include "trials.h"
 
-int trials_3d(unsigned int numThreads, float epsilon,
-		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
+int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+		unsigned int stagger, float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles)
 {
 	std::cout << "N (Size),CPU Time (s),GPU Time (s)" << std::endl;
@@ -71,7 +71,7 @@ int trials_3d(unsigned int numThreads, float epsilon,
 		if (gpu_harmonic_alloc_3d(m, gpu_u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numThreads) != 0) {
+		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreadsX, numThreadsY, stagger) != 0) {
 			return 1;
 		}
 
@@ -95,7 +95,10 @@ int trials_3d(unsigned int numThreads, float epsilon,
 int single_trial_3d()
 {
 	unsigned int version = 0; // 0 = CPU (SOR), 1 = GPU
-	unsigned int numThreads = 512;
+	unsigned int numBlocks = 32;
+	unsigned int numThreadsX = 24;
+	unsigned int numThreadsY = 24;
+	unsigned int stagger = 100;
 
 	float epsilon = 0.0001f;
 
@@ -108,6 +111,9 @@ int single_trial_3d()
 	srand(1);
 
 	if (version == 0) { // CPU
+		std::cout << "CPU Version" << std::endl;
+		std::cout.flush();
+
 		unsigned int *m = nullptr;
 		float *u = nullptr;
 
@@ -138,6 +144,9 @@ int single_trial_3d()
 		delete [] u;
 		delete [] m;
 	} else if (version == 1) { // CUDA
+		std::cout << "GPU Version" << std::endl;
+		std::cout.flush();
+
 		unsigned int *m = nullptr;
 		float *u = nullptr;
 
@@ -163,7 +172,7 @@ int single_trial_3d()
 		if (gpu_harmonic_alloc_3d(m, u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numThreads) != 0) {
+		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreadsX, numThreadsY, stagger) != 0) {
 			return 1;
 		}
 

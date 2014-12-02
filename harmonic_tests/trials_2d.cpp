@@ -24,7 +24,7 @@
 
 #include "trials.h"
 
-int trials_2d(unsigned int numThreads, float epsilon,
+int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stagger, float epsilon,
 		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles)
 {
@@ -70,7 +70,7 @@ int trials_2d(unsigned int numThreads, float epsilon,
 		if (gpu_harmonic_alloc_2d(m, gpu_u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numThreads) != 0) {
+		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
 			return 1;
 		}
 
@@ -93,9 +93,11 @@ int trials_2d(unsigned int numThreads, float epsilon,
 
 int single_trial_2d()
 {
-	unsigned int version = 0; // 0 = CPU, 1 = GPU
+	unsigned int version = 1; // 0 = CPU, 1 = GPU
 	unsigned int cpuVariant = 2; // 0 = Jacobi, 1 = Gauss-Seidel, 2 = SOR
-	unsigned int numThreads = 512;
+	unsigned int numThreads = 256;
+	unsigned int numBlocks = 256;
+	unsigned int stagger = 100;
 
 	float epsilon = 0.0001f;
 
@@ -108,6 +110,9 @@ int single_trial_2d()
 	srand(1);
 
 	if (version == 0) { // CPU
+		std::cout << "CPU Version" << std::endl;
+		std::cout.flush();
+
 		unsigned int *m = nullptr;
 		float *u = nullptr;
 
@@ -143,6 +148,9 @@ int single_trial_2d()
 		delete [] u;
 		delete [] m;
 	} else if (version == 1) { // CUDA
+		std::cout << "GPU Version" << std::endl;
+		std::cout.flush();
+
 		unsigned int *m = nullptr;
 
 		float *u = nullptr;
@@ -168,7 +176,7 @@ int single_trial_2d()
 		if (gpu_harmonic_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numThreads) != 0) {
+		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
 			return 1;
 		}
 
