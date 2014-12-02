@@ -32,7 +32,9 @@ __global__ void gpu_harmonic_check_2d(unsigned int *m, float *u, float *uPrime, 
 		for (unsigned int j = threadIdx.x; j < m[1]; j += blockDim.x) {
 			// Ensure this is not an obstacle, and the difference between iterations is greater than epsilon.
 			// If this is true, then we must continue running.
-			if (signbit(u[i * m[1] + j]) == 0 && fabsf(uPrime[i * m[1] + j] - u[i * m[1] + j]) > epsilon) {
+			if (signbit(u[i * m[1] + j]) == 0 &&
+					fabsf(uPrime[i * m[1] + j] -
+							u[i * m[1] + j]) > epsilon) {
 				*running = 1;
 			}
 		}

@@ -94,7 +94,7 @@ int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int num
 
 int single_trial_3d()
 {
-	unsigned int version = 0; // 0 = CPU (SOR), 1 = GPU
+	unsigned int version = 1; // 0 = CPU (SOR), 1 = GPU
 	unsigned int numBlocks = 32;
 	unsigned int numThreadsX = 24;
 	unsigned int numThreadsY = 24;
