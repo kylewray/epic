@@ -24,7 +24,7 @@
 
 #include "trials.h"
 
-int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+int trials_3d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numThreads,
 		unsigned int stagger, float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles)
 {
@@ -71,7 +71,7 @@ int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int num
 		if (gpu_harmonic_alloc_3d(m, gpu_u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreadsX, numThreadsY, stagger) != 0) {
+		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocksX, numBlocksY, numThreads, stagger) != 0) {
 			return 1;
 		}
 
@@ -95,16 +95,16 @@ int trials_3d(unsigned int numBlocks, unsigned int numThreadsX, unsigned int num
 int single_trial_3d()
 {
 	unsigned int version = 1; // 0 = CPU (SOR), 1 = GPU
-	unsigned int numBlocks = 32;
-	unsigned int numThreadsX = 24;
-	unsigned int numThreadsY = 24;
-	unsigned int stagger = 100;
+	unsigned int numBlocksX = 32;
+	unsigned int numBlocksY = 32;
+	unsigned int numThreads = 32;
+	unsigned int stagger = 2;
 
 	float epsilon = 0.0001f;
 
-	unsigned int size = 256;
-	unsigned int numObstacles = 10;
-	unsigned int maxObstacleSize = 50;
+//	unsigned int size = 24;
+//	unsigned int numObstacles = 10;
+//	unsigned int maxObstacleSize = 10;
 
 	bool printResult = true;
 
@@ -172,7 +172,7 @@ int single_trial_3d()
 		if (gpu_harmonic_alloc_3d(m, u, d_m, d_u, d_uPrime) != 0) {
 			return 1;
 		}
-		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreadsX, numThreadsY, stagger) != 0) {
+		if (gpu_harmonic_execute_3d(m, epsilon, d_m, d_u, d_uPrime, numBlocksX, numBlocksY, numThreads, stagger) != 0) {
 			return 1;
 		}
 

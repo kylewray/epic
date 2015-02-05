@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2014 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -26,92 +26,151 @@
 
 #include "../include/gpu.h"
 
-__global__ void gpu_harmonic_check_2d(unsigned int *m, float *u, float *uPrime, float epsilon, unsigned int *running)
+__global__ void gpu_jacobi_check(unsigned int n, unsigned int m, unsigned int *row, unsigned int *col, float *locked, float *u, float *uPrime, float epsilon, unsigned int *running)
 {
-	unsigned int di = m[1];
+	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
-	for (unsigned int i = blockIdx.x; i < m[0]; i += gridDim.x) {
-		for (unsigned int j = threadIdx.x; j < m[1]; j += blockDim.x) {
-			// Ensure this is not an obstacle, and the difference between iterations is greater than epsilon.
-			// If this is true, then we must continue running.
-			if (signbit(u[i * di + j]) == 0 &&
-					fabsf(uPrime[i * di + j] -
-							u[i * di + j]) > epsilon) {
-				*running = 1;
-			}
+	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
+	if (cell >= m || locked[cell]) {
+		return;
+	}
+
+	// If the difference is greater than epsilon, then we need to keep looping.
+	for (unsigned int i = 0; i < 2 * n; i++) {
+		if (fabs(u[i * m + cell] - uPrime[i * m + cell]) > epsilon) {
+			*running = 1;
 		}
 	}
 }
 
-__global__ void gpu_harmonic_iteration_2d(unsigned int *m, float *u, float *uPrime, float epsilon)
+__global__ void gpu_jacobi_iteration(unsigned int n, unsigned int m, unsigned int *row, unsigned int *col, float *locked, float *u, float *uPrime, float epsilon)
 {
-	unsigned int di = m[1];
+	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
-	for (unsigned int i = blockIdx.x; i < m[0]; i += gridDim.x) {
-		for (unsigned int j = threadIdx.x; j < m[1]; j += blockDim.x) {
-			// Skip this if it is an obstacle. It is better to actually just wastefully compute the
-			// equations below, instead of causing branch divergence.
-			if (signbit(u[i * di + j]) == 0) {
-				// Since this solver assumes the boundary is fixed, we do not need to check min and max.
-				// Unless, you decide to merge the if statement into the equations below... then you need these.
-	//			unsigned int ip = min(m[0] - 1, i + 1);
-	//			unsigned int im = max(0, i - 1);
-	//			unsigned int jp = min(m[1] - 1, j + 1);
-	//			unsigned int jm = max(0, j - 1);
+	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
+	if (cell >= m || locked[cell]) {
+		return;
+	}
 
-				float val = 0.25f *
-						(fabsf(u[(i + 1) * di + j]) +
-						fabsf(u[(i - 1) * di + j]) +
-						fabsf(u[i * di + (j + 1)]) +
-						fabsf(u[i * di + (j - 1)]));
+	// Average the 2*n neighbors, following the Jacobi method.
+	float val = 0.0f;
+	for (unsigned int i = 0; i < 2 * n; i++) {
+		val += u[i * m + cell];
+	}
+	val /= (float)n;
 
-				// TODO: Convert this into a separate kernel with the first element assigning the boolean running to false.
-				// Then sync threads. Then set running to true if fabs(u[] - uPrime[]) > epsilon. Make running an unsigned int...
-	//			*running = *running + (unsigned long long int)(fabsf(val - u[i * m[1] + j]) > epsilon);
-
-				uPrime[i * di + j] = val;
-			}
-		}
+	// Update all occurrences of this value.
+	for (unsigned int i = 0; i < 2 * n; i++) {
+		uPrime[row[i * m + cell] * m + col[i * m + cell]] = val;
 	}
 }
 
-int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
-		unsigned int *&d_m, float *&d_u, float *&d_uPrime)
+int gpu_jacobi_alloc(unsigned int n, unsigned int m, float *u,
+		unsigned int *&d_row, unsigned int *&d_col, bool *&d_locked, float *&d_u, float *&d_uPrime)
 {
 	// Ensure the data is valid.
-	if (u == nullptr || m == nullptr || m[0] == 0 || m[1] == 0) {
+	if (n == 0 || m == 0 || u == nullptr) {
 		std::cerr << "Error[gpu_harmonic_alloc_2d]: Invalid data." << std::endl;
 		return 1;
 	}
 
-	// Allocate the memory on the device.
-	if (cudaMalloc(&d_m, 2 * sizeof(unsigned int)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the dimension size values." << std::endl;
-		return 2;
-	}
-	if (cudaMalloc(&d_u, m[0] * m[1] * sizeof(float)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
-		return 2;
-	}
-	if (cudaMalloc(&d_uPrime, m[0] * m[1] * sizeof(float)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
-		return 2;
+	// Compute, allocate, and copy the row variable.
+	unsigned int *row = new unsigned int[2 * n * m];
+
+	for (unsigned int cell = 0; cell < m; cell++) {
+		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
+			row[neighbor * m + cell] = 1337;
+		}
 	}
 
-	// Copy the data from the host to the device. Note: Even if things like d_uPrime get overwritten,
-	// you MUST malloc AND memcpy to use them!
-	if (cudaMemcpy(d_m, m, 2 * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the dimension size function." << std::endl;
+	if (cudaMalloc(&d_row, 2 * n * m * sizeof(unsigned int)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the row values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_row, row, 2 * n * m * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the rows." << std::endl;
 		return 3;
 	}
-	if (cudaMemcpy(d_u, u, m[0] * m[1] * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+
+	delete [] row;
+
+	// Compute, allocate, and copy the col variable.
+	unsigned int *col = new unsigned int[2 * n * m];
+
+	for (unsigned int cell = 0; cell < m; cell++) {
+		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
+			col[neighbor * m + cell] = 1337;
+		}
+	}
+
+	if (cudaMalloc(&d_col, 2 * n * m * sizeof(unsigned int)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the col values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_col, row, 2 * n * m * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the cols." << std::endl;
+		return 3;
+	}
+
+	delete [] col;
+
+	// Compute, allocate, and copy the locked variable.
+	bool *locked = new bool[m];
+
+	for (unsigned int cell = 0; cell < m; cell++) {
+		locked[cell] = (u[cell] < 0.0f);
+	}
+
+	if (cudaMalloc(&d_locked, m * sizeof(bool)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the locked values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_locked, locked, m * sizeof(bool), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the locked." << std::endl;;
+		return 3;
+	}
+
+	delete [] locked;
+
+	// Allocate and copy u.
+	unsigned int *uDevice = new unsigned int[2 * n * m];
+
+	for (unsigned int cell = 0; cell < m; cell++) {
+		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
+			uDevice[neighbor * m + cell] = u[cell]; // TODO: This must be the correct value corresponding from the row/col following the indices above.
+		}
+	}
+
+	if (cudaMalloc(&d_u, 2 * n * m * sizeof(float)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_u, uDevice, 2 * n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the harmonic function." << std::endl;;
 		return 3;
 	}
-	if (cudaMemcpy(d_uPrime, u, m[0] * m[1] * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+
+	delete [] uDevice;
+
+	// Allocate and copy uPrime.
+	unsigned int *uPrimeDevice = new unsigned int[2 * n * m];
+
+	for (unsigned int cell = 0; cell < m; cell++) {
+		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
+			uPrimeDevice[neighbor * m + cell] = u[cell]; // TODO: This must be the correct value corresponding from the row/col following the indices above.
+		}
+	}
+
+	if (cudaMalloc(&d_uPrime, 2 * n * m * sizeof(float)) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic (prime) function values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_uPrime, uPrimeDevice, 2 * n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the harmonic function (prime)." << std::endl;
 		return 3;
 	}
+
+	delete [] uPrimeDevice;
 
 	return 0;
 }
@@ -217,19 +276,18 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 	return 0;
 }
 
-int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u)
+int gpu_harmonic_free(unsigned int *d_row, unsigned int *d_col, bool *d_locked, float *d_u, float *d_uPrime)
 {
-	if (cudaMemcpy(u, d_u, m[0] * m[1] * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_get_2d]: Failed to copy memory from device to host for the entire result." << std::endl;
+	if (cudaFree(d_row) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_free_2d]: Failed to free memory for the rows." << std::endl;
 		return 1;
 	}
-	return 0;
-}
-
-int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime)
-{
-	if (cudaFree(d_m) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_free_2d]: Failed to free memory for the dimension sizes." << std::endl;
+	if (cudaFree(d_col) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_free_2d]: Failed to free memory for the cols." << std::endl;
+		return 1;
+	}
+	if (cudaFree(d_locked) != cudaSuccess) {
+		std::cerr << "Error[gpu_harmonic_free_2d]: Failed to free memory for the locked." << std::endl;
 		return 1;
 	}
 	if (cudaFree(d_u) != cudaSuccess) {

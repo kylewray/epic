@@ -75,7 +75,7 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float *u, float epsilon)
 		iterations++;
 	}
 
-//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+//	std::cout << "CPU Jacobi 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory allocated!
 	delete [] uPrime;
@@ -123,7 +123,7 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float *u, float epsilon)
 		iterations++;
 	}
 
-//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+//	std::cout << "CPU Gauss-Seidel 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	return 0;
 }
@@ -168,7 +168,7 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float *u, float epsilon, float om
 		iterations++;
 	}
 
-//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+//	std::cout << "CPU SOR 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	return 0;
 }
@@ -224,7 +224,7 @@ int cpu_harmonic_sor_3d(const unsigned int *m, float *u, float epsilon, float om
 		iterations++;
 	}
 
-//	std::cout << "Completed in " << iterations << " iterations." << std::endl;
+//	std::cout << "CPU SOR 3D: Completed in " << iterations << " iterations." << std::endl;
 
 	return 0;
 }

@@ -101,9 +101,9 @@ int single_trial_2d()
 
 	float epsilon = 0.0001f;
 
-	unsigned int size = 256;
-	unsigned int numObstacles = 10;
-	unsigned int maxObstacleSize = 50;
+//	unsigned int size = 256;
+//	unsigned int numObstacles = 10;
+//	unsigned int maxObstacleSize = 50;
 
 	bool printResult = true;
 

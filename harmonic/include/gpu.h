@@ -99,9 +99,9 @@ int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
  * @param	d_m			The memory address for the dimension sizes on the device.
  * @param	d_u			The memory address on the device for the discrete values on the device.
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
- * @param	numBlocks	The number of blocks to execute over the first dimension of u.
- * @param	numThreadsX	The number of threads to execute over the second dimension of u.
- * @param	numThreadsY	The number of threads to execute over the third dimension of u.
+ * @param	numBlocksX	The number of blocks to execute over the first dimension of u.
+ * @param	numBlocksY	The number of blocks to execute over the second dimension of u.
+ * @param	numThreads	The number of threads to execute over the third dimension of u.
  * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
