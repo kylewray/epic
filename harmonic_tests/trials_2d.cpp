@@ -95,6 +95,7 @@ int single_trial_2d()
 {
 	unsigned int version = 1; // 0 = CPU, 1 = GPU
 	unsigned int cpuVariant = 2; // 0 = Jacobi, 1 = Gauss-Seidel, 2 = SOR
+	unsigned int gpuVariant = 1; // 0 = Naive, 1 = Epic
 	unsigned int numThreads = 256;
 	unsigned int numBlocks = 256;
 	unsigned int stagger = 100;
@@ -166,32 +167,71 @@ int single_trial_2d()
 		create_variable_world_2d(m, u, numObstacles, maxObstacleSize);
 		//*/
 
-		long long start = get_current_time();
+		if (gpuVariant == 0) {
+			unsigned int *d_m;
+			float *d_u;
+			float *d_uPrime;
 
-		unsigned int *d_m;
-		float *d_u;
-		float *d_uPrime;
+			// Allocate Jacobi iteration on the GPU (naive version).
+			if (gpu_harmonic_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
+				return 1;
+			}
 
-		// Allocate and execute Jacobi iteration on the GPU (naive version).
-		if (gpu_harmonic_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
-			return 1;
+			long long start = get_current_time();
+
+			// Execute Jacobi iteration on the GPU (naive version).
+			if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
+				return 1;
+			}
+
+			std::cout << "[Naive Version] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+
+			// Get the world from the GPU and print it.
+			if (printResult) {
+				gpu_harmonic_get_2d(m, d_u, u);
+				print_world_2d(m, u);
+			}
+
+			// Release everything.
+			if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+		} else if (gpuVariant == 1) {
+			unsigned int *d_row;
+			unsigned int *d_col;
+			bool *d_locked;
+			float *d_u;
+			float *d_uPrime;
+
+			unsigned int n = 2;
+			unsigned int d = m[0] * m[1];
+
+			// Allocate Jacobi iteration on the GPU (epic version).
+			if (gpu_jacobi_alloc(n, d, m, u, d_row, d_col, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			long long start = get_current_time();
+
+			// Execute Jacobi iteration on the GPU (epic version).
+			if (gpu_jacobi_execute(n, d, epsilon, d_row, d_col, d_locked, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
+				return 1;
+			}
+
+			std::cout << "[Epic Version] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+
+			// Get the world from the GPU and print it.
+			if (printResult) {
+				gpu_jacobi_get_all(n, d, d_row, d_col, d_locked, d_u, u);
+				print_world_2d(m, u);
+			}
+
+			// Release everything.
+			if (gpu_jacobi_free(d_row, d_col, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
 		}
-		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
-			return 1;
-		}
 
-		std::cout << "Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
-
-		// Get the world from the GPU and print it.
-		if (printResult) {
-			gpu_harmonic_get_2d(m, d_u, u);
-			print_world_2d(m, u);
-		}
-
-		// Release everything.
-		if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {
-			return 1;
-		}
 		delete [] u;
 		delete [] m;
 	}

@@ -34,6 +34,7 @@
 #include "naive.h"
 #include "cpu.h"
 #include "gpu.h"
+#include "gpu_jacobi.h"
 
 /**
  * Return the current time in milliseconds.

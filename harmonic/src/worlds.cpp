@@ -67,10 +67,10 @@ void print_world_2d(unsigned int *m, float *u)
 	for (int i = 0; i < m[0]; i++) {
 		for (int j = 0; j < m[1]; j++) {
 			unsigned long long int index = i * m[1] + j;
-			if (fabs(u[index]) == 0.0f) {
+			if (signbit(u[index]) != 0) {
+				printf("----- ");
+			} else if (fabs(u[index]) == 0.0f) {
 				printf("+++++ ");
-			} else if (u[index] < 0.0f) {
-					printf("----- ");
 			} else {
 				printf("%.3f ", fabs(u[index]));
 			}
@@ -182,10 +182,10 @@ void print_world_3d(unsigned int *m, float *u)
 		for (int j = 0; j < m[1]; j++) {
 			for (int k = 0; k < m[2]; k++) {
 				unsigned long long int index = i * m[1] * m[2] + j * m[2] + k;
-				if (fabs(u[index]) == 0.0f) {
+				if (signbit(u[index]) != 0) {
+					printf("----- ");
+				} else if (fabs(u[index]) == 0.0f) {
 					printf("+++++ ");
-				} else if (u[index] < 0.0f) {
-						printf("----- ");
 				} else {
 					printf("%.3f ", fabs(u[index]));
 				}

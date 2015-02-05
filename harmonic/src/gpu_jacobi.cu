@@ -23,178 +23,279 @@
 
 
 #include <iostream>
+#include <math.h>
 
 #include "../include/gpu.h"
 
-__global__ void gpu_jacobi_check(unsigned int n, unsigned int m, unsigned int *row, unsigned int *col, float *locked, float *u, float *uPrime, float epsilon, unsigned int *running)
+__global__ void gpu_jacobi_check(unsigned int n, unsigned int d, unsigned int *row, unsigned int *col,
+		bool *locked, float *u, float *uPrime, float epsilon, unsigned int *running)
 {
 	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
-	if (cell >= m || locked[cell]) {
+	if (cell >= d || locked[cell]) {
 		return;
 	}
 
 	// If the difference is greater than epsilon, then we need to keep looping.
 	for (unsigned int i = 0; i < 2 * n; i++) {
-		if (fabs(u[i * m + cell] - uPrime[i * m + cell]) > epsilon) {
+		if (fabs(u[i * d + cell] - uPrime[i * d + cell]) > epsilon) {
 			*running = 1;
 		}
 	}
 }
 
-__global__ void gpu_jacobi_iteration(unsigned int n, unsigned int m, unsigned int *row, unsigned int *col, float *locked, float *u, float *uPrime, float epsilon)
+__global__ void gpu_jacobi_iteration(unsigned int n, unsigned int d, unsigned int *row, unsigned int *col,
+		bool *locked, float *u, float *uPrime, float epsilon)
 {
 	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
-	if (cell >= m || locked[cell]) {
+	if (cell >= d || locked[cell]) {
 		return;
 	}
 
 	// Average the 2*n neighbors, following the Jacobi method.
 	float val = 0.0f;
 	for (unsigned int i = 0; i < 2 * n; i++) {
-		val += u[i * m + cell];
+		val += u[i * d + cell];
 	}
-	val /= (float)n;
+	val /= (float)(2 * n);
 
 	// Update all occurrences of this value.
 	for (unsigned int i = 0; i < 2 * n; i++) {
-		uPrime[row[i * m + cell] * m + col[i * m + cell]] = val;
+		uPrime[row[i * d + cell] * d + col[i * d + cell]] = val;
 	}
 }
 
-int gpu_jacobi_alloc(unsigned int n, unsigned int m, float *u,
+void index_to_coordinate(unsigned int n, unsigned int *m, unsigned int i, unsigned int *&c)
+{
+	// Actually allocate the memory for the coordinate.
+	c = new unsigned int[n];
+
+	// Compute the coordinate by modifying the through the index and continually
+	// removing the 'pieces' corresponding to each dimension, based on its size.
+	for (unsigned int k = 0; k < n; k++) {
+		// Make sure it goes in the correct order over k.
+		c[n - k - 1] = i % m[k];
+		i = (unsigned int)(i / m[k]);
+	}
+}
+
+void coordinate_to_index(unsigned int n, unsigned int *m, unsigned int *c, unsigned int &i)
+{
+	// The index offset based on the current dimension.
+	unsigned int mk = 1;
+
+	i = 0;
+
+	// For each of the dimensions, compute the adjustment using the coordinate.
+	for (unsigned int k = 0; k < n; k++) {
+		// This is the offset based on previously computed dimensions.
+		mk = 1;
+		for (unsigned int j = 0; j < k; j++) {
+			mk *= m[j];
+		}
+
+		// Make sure it goes in the correct order over k.
+		i += c[n - k - 1] * mk;
+	}
+}
+
+int gpu_jacobi_alloc(unsigned int n, unsigned int d, unsigned int *m, float *u,
 		unsigned int *&d_row, unsigned int *&d_col, bool *&d_locked, float *&d_u, float *&d_uPrime)
 {
 	// Ensure the data is valid.
-	if (n == 0 || m == 0 || u == nullptr) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Invalid data." << std::endl;
+	if (n == 0 || d == 0 || m == nullptr || u == nullptr) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Invalid data." << std::endl;
 		return 1;
 	}
 
 	// Compute, allocate, and copy the row variable.
-	unsigned int *row = new unsigned int[2 * n * m];
+	unsigned int *row = new unsigned int[2 * n * d];
 
-	for (unsigned int cell = 0; cell < m; cell++) {
-		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
-			row[neighbor * m + cell] = 1337;
+	for (unsigned int cell = 0; cell < d; cell++) {
+		// Convert the cell index to a coordinate.
+		unsigned int *coord = nullptr;
+		index_to_coordinate(n, m, cell, coord);
+
+		// For each dimension, for both neighbors, compute the coordinate, convert to index, then assign value.
+		for (unsigned int k = 0; k < n; k++) {
+			// For this row, we assign the value to be: from the perspective of the neighbor cell, it is the
+			// same dimension, except offset with the opposite +1/-1.
+			if (coord[k] > 0) {
+				row[(2 * k + 0) * d + cell] = 2 * k + 1;
+			} else {
+				row[(2 * k + 0) * d + cell] = 2 * k + 0;
+			}
+
+			// Do the same for the other neighbor.
+			if (coord[k] < m[k] - 1) {
+				row[(2 * k + 1) * d + cell] = 2 * k + 0;
+			} else {
+				row[(2 * k + 1) * d + cell] = 2 * k + 1;
+			}
 		}
+
+		delete [] coord;
 	}
 
-	if (cudaMalloc(&d_row, 2 * n * m * sizeof(unsigned int)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the row values." << std::endl;
+	if (cudaMalloc(&d_row, 2 * n * d * sizeof(unsigned int)) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the row values." << std::endl;
 		return 2;
 	}
-	if (cudaMemcpy(d_row, row, 2 * n * m * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the rows." << std::endl;
+
+	if (cudaMemcpy(d_row, row, 2 * n * d * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the rows." << std::endl;
 		return 3;
 	}
-
-	delete [] row;
 
 	// Compute, allocate, and copy the col variable.
-	unsigned int *col = new unsigned int[2 * n * m];
+	unsigned int *col = new unsigned int[2 * n * d];
 
-	for (unsigned int cell = 0; cell < m; cell++) {
-		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
-			col[neighbor * m + cell] = 1337;
+	for (unsigned int cell = 0; cell < d; cell++) {
+		// Convert the cell index to a coordinate.
+		unsigned int *coord = nullptr;
+		index_to_coordinate(n, m, cell, coord);
+
+		// For each dimension, for both neighbors, compute the coordinate, convert to index, then assign value.
+		for (unsigned int k = 0; k < n; k++) {
+			// Adjust to make the coordinate refer to the neighbor with the -1 direction.
+			bool adjusted = false;
+			if (coord[k] > 0) {
+				coord[k]--;
+				adjusted = true;
+			}
+
+			// Convert this neighbor to a cell index (j).
+			unsigned int j = 0;
+			coordinate_to_index(n, m, coord, j);
+
+			// For this column, we assign the cell index.
+			col[(2 * k + 0) * d + cell] = j;
+
+			// Properly adjust the coordinate back to the cell center.
+			if (adjusted) {
+				coord[k]++;
+			}
+
+			// Adjust to make the coordinate refer to the neighbor with the +1 direction.
+			adjusted = false;
+			if (coord[k] < m[k] - 1) {
+				coord[k]++;
+				adjusted = true;
+			}
+
+			// Convert this neighbor to a cell index (j).
+			j = 0;
+			coordinate_to_index(n, m, coord, j);
+
+			// For this column, we assign the cell index.
+			col[(2 * k + 1) * d + cell] = j;
+
+			// Properly adjust the coordinate back to the cell center.
+			if (adjusted) {
+				coord[k]--;
+			}
 		}
+
+		delete [] coord;
 	}
 
-	if (cudaMalloc(&d_col, 2 * n * m * sizeof(unsigned int)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the col values." << std::endl;
+	if (cudaMalloc(&d_col, 2 * n * d * sizeof(unsigned int)) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the col values." << std::endl;
 		return 2;
 	}
-	if (cudaMemcpy(d_col, row, 2 * n * m * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the cols." << std::endl;
+
+	if (cudaMemcpy(d_col, col, 2 * n * d * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the cols." << std::endl;
 		return 3;
 	}
-
-	delete [] col;
 
 	// Compute, allocate, and copy the locked variable.
-	bool *locked = new bool[m];
+	bool *locked = new bool[d];
 
-	for (unsigned int cell = 0; cell < m; cell++) {
-		locked[cell] = (u[cell] < 0.0f);
+	for (unsigned int cell = 0; cell < d; cell++) {
+		locked[cell] = (signbit(u[cell]) != 0);
 	}
 
-	if (cudaMalloc(&d_locked, m * sizeof(bool)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the locked values." << std::endl;
+	if (cudaMalloc(&d_locked, d * sizeof(bool)) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the locked values." << std::endl;
 		return 2;
 	}
-	if (cudaMemcpy(d_locked, locked, m * sizeof(bool), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the locked." << std::endl;;
+
+	if (cudaMemcpy(d_locked, locked, d * sizeof(bool), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the locked." << std::endl;;
 		return 3;
 	}
-
-	delete [] locked;
 
 	// Allocate and copy u.
-	unsigned int *uDevice = new unsigned int[2 * n * m];
+	float *uDevice = new float[2 * n * d];
 
-	for (unsigned int cell = 0; cell < m; cell++) {
+	for (unsigned int cell = 0; cell < d; cell++) {
 		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
-			uDevice[neighbor * m + cell] = u[cell]; // TODO: This must be the correct value corresponding from the row/col following the indices above.
+			uDevice[neighbor * d + cell] = fabs(u[col[neighbor * d + cell]]);
 		}
 	}
 
-	if (cudaMalloc(&d_u, 2 * n * m * sizeof(float)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
+	if (cudaMalloc(&d_u, 2 * n * d * sizeof(float)) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
 		return 2;
 	}
-	if (cudaMemcpy(d_u, uDevice, 2 * n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the harmonic function." << std::endl;;
+	if (cudaMemcpy(d_u, uDevice, 2 * n * d * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the harmonic function." << std::endl;;
 		return 3;
 	}
 
+//	// Allocate and copy uPrime.
+//	float *uPrimeDevice = new float[2 * n * d];
+//
+//	for (unsigned int cell = 0; cell < d; cell++) {
+//		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
+//			uPrimeDevice[neighbor * d + cell] = fabs(u[col[neighbor * d + cell]]);
+//		}
+//	}
+
+	if (cudaMalloc(&d_uPrime, 2 * n * d * sizeof(float)) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the harmonic (prime) function values." << std::endl;
+		return 2;
+	}
+	if (cudaMemcpy(d_uPrime, uDevice, 2 * n * d * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the harmonic function (prime)." << std::endl;
+		return 3;
+	}
+
+	// Free everything afterwards, since you need to use the row/col to figure out which spots to setup in the uDevice.
+	delete [] row;
+	delete [] col;
+	delete [] locked;
 	delete [] uDevice;
-
-	// Allocate and copy uPrime.
-	unsigned int *uPrimeDevice = new unsigned int[2 * n * m];
-
-	for (unsigned int cell = 0; cell < m; cell++) {
-		for (unsigned int neighbor = 0; neighbor < 2 * n; neighbor++) {
-			uPrimeDevice[neighbor * m + cell] = u[cell]; // TODO: This must be the correct value corresponding from the row/col following the indices above.
-		}
-	}
-
-	if (cudaMalloc(&d_uPrime, 2 * n * m * sizeof(float)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to allocate device-side memory for the harmonic (prime) function values." << std::endl;
-		return 2;
-	}
-	if (cudaMemcpy(d_uPrime, uPrimeDevice, 2 * n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_alloc_2d]: Failed to copy memory from host to device for the harmonic function (prime)." << std::endl;
-		return 3;
-	}
-
-	delete [] uPrimeDevice;
+//	delete [] uPrimeDevice;
 
 	return 0;
 }
 
-int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
-		unsigned int *d_m, float *d_u, float *d_uPrime,
+int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
+		unsigned int *d_row, unsigned int *d_col, bool *d_locked, float *d_u, float *d_uPrime,
 		unsigned int numBlocks, unsigned int numThreads,
 		unsigned int stagger)
 {
 	// Ensure the data is valid.
-	if (m == nullptr || epsilon <= 0.0f || d_m == nullptr || d_u == nullptr || numBlocks == 0 || numThreads == 0) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Invalid data." << std::endl;
+	if (n == 0 || d == 0 || epsilon <= 0.0f || d_row == nullptr || d_col == nullptr || d_locked == nullptr ||
+			d_u == nullptr || d_uPrime == nullptr || numBlocks == 0 || numThreads == 0) {
+		std::cerr << "Error[gpu_jacobi_execute]: Invalid data." << std::endl;
 		return 1;
 	}
 
 	// Also ensure that the number of threads executed are valid.
 	if (numThreads % 32 != 0) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Must specify a number of threads divisible by 32 (the number of threads in a warp)." << std::endl;
+		std::cerr << "Error[gpu_jacobi_execute]: Must specify a number of threads divisible by 32 (the number of threads in a warp)." << std::endl;
 		return 1;
 	}
 
 	// We must ensure that the stagger for convergence checking is even (i.e., num iterations), so that d_u stores the final result, not d_uPrime.
-	if (stagger % 2 == 1) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Stagger for convergence checking must be even." << std::endl;
+	if (stagger == 0 || stagger % 2 == 1) {
+		std::cerr << "Error[gpu_jacobi_execute]: Stagger for convergence checking must be a positive even integer." << std::endl;
 		return 1;
 	}
 
@@ -204,34 +305,37 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 
 	unsigned int *d_running = nullptr;
 	if (cudaMalloc(&d_running, sizeof(unsigned int)) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to allocate device-side memory for the running variable." << std::endl;
+		std::cerr << "Error[gpu_jacobi_execute]: Failed to allocate device-side memory for the running variable." << std::endl;
 		return 2;
 	}
 
 	if (cudaMemcpy(d_running, running, sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from host to device." << std::endl;
+		std::cerr << "Error[gpu_jacobi_execute]: Failed to copy running object from host to device." << std::endl;
 		return 3;
 	}
 
 	// Iterate until convergence.
-	unsigned long long int iterations = 0;
+	unsigned int iterations = 0;
 
 	// Important Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
-	while (*running > 0) {
+	// Also, always run at least 'stagger' iterations.
+	while (*running > 0 || iterations < stagger) {
+		std::cout << "Iteration " << iterations << std::endl; std::cout.flush();
+
 		// Perform one step of the iteration, either using u and storing in uPrime, or vice versa.
 		if (iterations % 2 == 0) {
-			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_u, d_uPrime, epsilon);
+			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, d_row, d_col, d_locked, d_u, d_uPrime, epsilon);
 		} else {
-			gpu_harmonic_iteration_2d<<< numBlocks, numThreads >>>(d_m, d_uPrime, d_u, epsilon);
+			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, d_row, d_col, d_locked, d_uPrime, d_u, epsilon);
 		}
 		if (cudaGetLastError() != cudaSuccess) {
-			std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to execute the 'iteration' kernel." << std::endl;
+			std::cerr << "Error[gpu_jacobi_execute]: Failed to execute the 'iteration' kernel." << std::endl;
 			return 3;
 		}
 
 		// Wait for the kernel to finish before looping more.
 		if (cudaDeviceSynchronize() != cudaSuccess) {
-			std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to synchronize the device." << std::endl;
+			std::cerr << "Error[gpu_jacobi_execute]: Failed to synchronize the device." << std::endl;
 			return 3;
 		}
 
@@ -240,23 +344,23 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 			*running = 0;
 
 			if (cudaMemcpy(d_running, running, sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from host to device." << std::endl;
+				std::cerr << "Error[gpu_jacobi_execute]: Failed to copy running object from host to device." << std::endl;
 				return 3;
 			}
 
-			gpu_harmonic_check_2d<<< numBlocks, numThreads >>>(d_m, d_u, d_uPrime, epsilon, d_running);
+			gpu_jacobi_check<<< numBlocks, numThreads >>>(n, d, d_row, d_col, d_locked, d_u, d_uPrime, epsilon, d_running);
 			if (cudaGetLastError() != cudaSuccess) {
-				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to execute the 'check' kernel." << std::endl;
+				std::cerr << "Error[gpu_jacobi_execute]: Failed to execute the 'check' kernel." << std::endl;
 				return 3;
 			}
 
 			if (cudaDeviceSynchronize() != cudaSuccess) {
-				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to synchronize the device when checking for convergence." << std::endl;
+				std::cerr << "Error[gpu_jacobi_execute]: Failed to synchronize the device when checking for convergence." << std::endl;
 				return 3;
 			}
 
 			if (cudaMemcpy(running, d_running, sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-				std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to copy running object from device to host." << std::endl;
+				std::cerr << "Error[gpu_jacobi_execute]: Failed to copy running object from device to host." << std::endl;
 				return 3;
 			}
 		}
@@ -264,19 +368,67 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
 		iterations++;
 	}
 
-//	std::cout << "GPU Jacobi 2D: Completed in " << iterations << " iterations." << std::endl;
+	std::cout << "GPU Jacobi 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the memory of the delta value.
 	delete running;
 	if (cudaFree(d_running) != cudaSuccess) {
-		std::cerr << "Error[gpu_harmonic_execute_2d]: Failed to free memory for the running flag." << std::endl;
+		std::cerr << "Error[gpu_jacobi_execute]: Failed to free memory for the running flag." << std::endl;
 		return 4;
 	}
 
 	return 0;
 }
 
-int gpu_harmonic_free(unsigned int *d_row, unsigned int *d_col, bool *d_locked, float *d_u, float *d_uPrime)
+int gpu_jacobi_get_all(unsigned int n, unsigned int d, unsigned int *d_row, unsigned int *d_col, bool *d_locked, float *d_u, float *u)
+{
+	// Read the rows, cols, and actual u-values from the device.
+	unsigned int *row = new unsigned int[2 * n * d];
+
+	if (cudaMemcpy(row, d_row, 2 * n * d * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_get_all]: Failed to copy memory from device to host for the rows." << std::endl;
+		return 1;
+	}
+
+	unsigned int *col = new unsigned int[2 * n * d];
+
+	if (cudaMemcpy(col, d_col, 2 * n * d * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_get_all]: Failed to copy memory from device to host for the cols." << std::endl;
+		return 1;
+	}
+
+	bool *locked = new bool[d];
+
+	if (cudaMemcpy(locked, d_locked, d * sizeof(bool), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_get_all]: Failed to copy memory from device to host for the locked." << std::endl;
+		return 1;
+	}
+
+	float *uDevice = new float[2 * n * d];
+
+	if (cudaMemcpy(uDevice, d_u, 2 * n * d * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		std::cerr << "Error[gpu_jacobi_get_all]: Failed to copy memory from device to host for the resultant u values." << std::endl;
+		return 1;
+	}
+
+	// Read the values from uDevice and store them in u.
+	for (unsigned int cell = 0; cell < d; cell++) {
+		u[cell] = uDevice[row[0 * d + cell] * d + col[0 * d + cell]];
+		if (locked[cell]) {
+			u[cell] = -u[cell];
+		}
+	}
+
+	// Free everything afterwards, since you need to use the row/col to figure out which spots to read in uDevice.
+	delete [] row;
+	delete [] col;
+	delete [] locked;
+	delete [] uDevice;
+
+	return 0;
+}
+
+int gpu_jacobi_free(unsigned int *d_row, unsigned int *d_col, bool *d_locked, float *d_u, float *d_uPrime)
 {
 	if (cudaFree(d_row) != cudaSuccess) {
 		std::cerr << "Error[gpu_harmonic_free_2d]: Failed to free memory for the rows." << std::endl;
