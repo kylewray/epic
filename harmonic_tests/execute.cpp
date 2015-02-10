@@ -26,35 +26,37 @@
 
 int main(int argc, char *argv[])
 {
+	// Execute the full trials.
+	trials_2d(1024, 1024, 100, 0.0001f, 128, 2048, 128, 100, 1);
+//	trials_3d(32, 32, 256, 100, 0.0001f, 32, 256, 32, 100, 1); // The two '256' values should be equal if you change it (if possible).
+//	trials_4d(32, 32, 32, 256, 100, 0.0001f, 32, 256, 8, 100, 1); // The two '256' values should be equal if you change it (if possible).
+
+
 	// Examine different size problems (e.g., min=128, max=128, step=32 (ignored)).
 	// Each time vary the number of threads at the same speed. At the very end,
 	// we note that the number of threads is less than the size of the area, so
 	// we do blocks of threads in the awesome way.
-//	trials_2d(128, 128, 20, 0.0001f, 128, 128, 32, 10);
-//	trials_2d(256, 256, 20, 0.0001f, 256, 256, 32, 10);
-//	trials_2d(512, 512, 20, 0.0001f, 512, 512, 32, 10);
-//	trials_2d(512, 512, 20, 0.0001f, 1024, 1024, 32, 10);
-//	trials_2d(512, 512, 20, 0.0001f, 2014, 2014, 32, 10);
+//	trials_2d(128, 128, 100, 0.0001f, 128, 128, 32, 10);
+//	trials_2d(256, 256, 100, 0.0001f, 256, 256, 32, 10);
+//	trials_2d(512, 512, 100, 0.0001f, 512, 512, 32, 10);
+//	trials_2d(512, 512, 100, 0.0001f, 1024, 1024, 32, 10);
+//	trials_2d(512, 512, 100, 0.0001f, 2048, 2048, 32, 10);
 
-	single_trial_2d();
+//	single_trial_2d();
+
+
 
 	// 24 * 24 = 576 ... 576 % 32 = 18
 
-//	trials_3d(32, 24, 24, 2, 0.0001f, 32, 32, 32, 10);
-//	trials_3d(64, 24, 24, 2, 0.0001f, 64, 64, 32, 10);
-//	trials_3d(96, 24, 24, 2, 0.0001f, 96, 96, 32, 10);
-//	trials_3d(128, 24, 24, 2, 0.0001f, 128, 128, 32, 10);
-//	trials_3d(256, 24, 24, 2, 0.0001f, 256, 256, 32, 10);
-//	trials_3d(512, 24, 24, 2, 0.0001f, 512, 512, 32, 10);
+//	trials_3d(32, 24, 32, 100, 0.0001f, 32, 32, 32, 10);
+//	trials_3d(64, 24, 32, 100, 0.0001f, 64, 64, 32, 10);
+//	trials_3d(96, 24, 32, 100, 0.0001f, 96, 96, 32, 10);
+//	trials_3d(128, 24, 32, 100, 0.0001f, 128, 128, 32, 10);
+//	trials_3d(256, 24, 32, 100, 0.0001f, 256, 256, 32, 10);
+//	trials_3d(512, 24, 32, 100, 0.0001f, 512, 512, 32, 10);
 
 //	single_trial_3d();
 
-
-	// Very interesting results: <128, 1, 128> is the fastest here, compared to
-	// various combinations like <32, 1, 128>, <8, 8, 128>, <1, 128, 128>, etc.
-	// Each pattern accesses memory in a different way, since they block/grid-stride
-	// in the kernel.
-//	trials_3d(128, 1, 128, 10, 0.0001f, 128, 128, 16, 10);
 
 
 	return 0;

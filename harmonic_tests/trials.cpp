@@ -24,9 +24,33 @@
 
 #include "trials.h"
 
+#include <math.h>
+#include <cstdio>
+
 long long get_current_time()
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+}
+
+std::string compute_statistics(std::vector<double> samples)
+{
+	double mean = 0.0;
+	for (std::vector<double>::iterator s = samples.begin(); s != samples.end(); s++) {
+		mean += *s;
+	}
+	mean /= (double)samples.size();
+
+	double stdev = 0.0;
+	for (std::vector<double>::iterator s = samples.begin(); s != samples.end(); s++) {
+		stdev += (*s - mean) * (*s - mean);
+	}
+	stdev = sqrt(stdev / (double)(samples.size() - 1));
+
+	double ci95 = stdev / sqrt((double)samples.size()) * 1.96;
+
+	char buffer[512];
+	snprintf(buffer, sizeof(buffer), "%f,%f,%f", mean, stdev, ci95);
+	return buffer;
 }

@@ -21,8 +21,8 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GPU_JACOBI_H
-#define GPU_JACOBI_H
+#ifndef GPU_JACOBI_V2_H
+#define GPU_JACOBI_V2_H
 
 
 // Since it is not C++ 11.
@@ -39,7 +39,6 @@
  * @param	d			The total number of cells.
  * @param	m			The n-dimensional array, specifying the size of each dimension.
  * @param	u			The harmonic function as a d-array following the dimensions of m.
- * @param	dNew		The new 'd' value based on how many cells we can remove.
  * @param	d_index		The resulting memory address for the row indices within d_u (and d_uPrime)
  * 						which point to which cells must be updated once the value is computed.
  * @param	d_locked	If each cell was locked or not (m-array).
@@ -51,9 +50,8 @@
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_jacobi_alloc(unsigned int n, unsigned int d, unsigned int *m,
-		unsigned int *&cellIndexActualToAdjusted, unsigned int *&cellIndexAdjustedToActual, float *u,
-		unsigned int &dNew, int *&d_index, bool *&d_locked, float *&d_u, float *&d_uPrime);
+int gpu_jacobi_v2_alloc(unsigned int n, unsigned int d, unsigned int *m, float *u,
+		int *&d_index, bool *&d_locked, float *&d_u, float *&d_uPrime);
 
 /**
  * Iterate the harmonic function solver which uses the Jacobi method.
@@ -73,7 +71,7 @@ int gpu_jacobi_alloc(unsigned int n, unsigned int d, unsigned int *m,
  * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
+int gpu_jacobi_v2_execute(unsigned int n, unsigned int d, float epsilon,
 		int *d_index, bool *d_locked, float *d_u, float *d_uPrime,
 		unsigned int numThreads,
 		unsigned int stagger);
@@ -82,8 +80,6 @@ int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
  * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)
  * @param	n			The number of dimensions.
  * @param	d			The total number of cells.
- * @param	dNew		The new 'd' value based on how many cells we can remove.
- * @param	m			The n-dimensional array, specifying the size of each dimension.
  * @param	d_index		The resulting memory address for the row indices within d_u (and d_uPrime)
  * 						which point to which cells must be updated once the value is computed.
  * @param	d_locked	If each cell was locked or not (m-array).
@@ -95,9 +91,8 @@ int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
  * @param	u			The entire array representation of values, which is assumed to be created in memory already.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_jacobi_get_all(unsigned int n, unsigned int d, unsigned int dNew, unsigned int *m,
-		unsigned int *cellIndexActualToAdjusted, int *d_index, bool *d_locked, float *d_u,
-		float *u);
+int gpu_jacobi_v2_get_all(unsigned int n, unsigned int d, int *d_index,
+		bool *d_locked, float *d_u, float *u);
 
 /**
  * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.
@@ -112,8 +107,7 @@ int gpu_jacobi_get_all(unsigned int n, unsigned int d, unsigned int dNew, unsign
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_jacobi_free(unsigned int *&cellIndexActualToAdjusted, unsigned int *&cellIndexAdjustedToActual,
-		int *d_index, bool *d_locked, float *d_u, float *d_uPrime);
+int gpu_jacobi_v2_free(int *d_index, bool *d_locked, float *d_u, float *d_uPrime);
 
 
-#endif // GPU_JACOBI_H
+#endif // GPU_JACOBI_V2_H

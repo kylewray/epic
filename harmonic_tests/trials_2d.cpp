@@ -26,11 +26,15 @@
 
 int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stagger, float epsilon,
 		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
-		unsigned int numObstacles)
+		unsigned int numObstacles, unsigned int numExecutions)
 {
-	std::cout << "N (Size),CPU Time (s),GPU Time (s)" << std::endl;
+	unsigned int numThreadsEpic = 1024;
+
+	std::cout << "N,CPU Mean,CPU Stdev,CPU 95% CI,GPU v1 Mean,GPU v1 Stdev,GPU v1 95% CI,GPU v2 Mean,GPU v2 Stdev,GPU v2 95% CI,GPU v3 d,GPU v3 dNew,GPU v3 Mean,GPU v3 Stdev,GPU v3 95% CI" << std::endl;
 
 	for (unsigned int size = minSize; size <= maxSize; size += stepSize) {
+		std::vector<double> times;
+
 		unsigned int maxObstacleSize = size / 2;
 
 		std::cout << size << ",";
@@ -40,52 +44,147 @@ int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stag
 		m[0] = size;
 		m[1] = size;
 
-		// Create the world outside of timing.
-		float *cpu_u = nullptr;
-		create_variable_world_2d(m, cpu_u, numObstacles, maxObstacleSize);
+		times.clear();
 
-//		std::clock_t start = std::clock();
-		long long start = get_current_time();
+		for (unsigned int k = 0; k < numExecutions; k++) {
+			// Create the world outside of timing.
+			float *cpu_u = nullptr;
+			create_variable_world_2d(m, cpu_u, numObstacles, maxObstacleSize);
 
-		cpu_harmonic_sor_2d(m, cpu_u, epsilon, 1.5f);
+			long long start = get_current_time();
 
-//		std::cout << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000.0) << "\t\t";
-		std::cout << (double)(get_current_time() - start) / 1000.0 << ",";
+			cpu_harmonic_sor_2d(m, cpu_u, epsilon, 1.5f);
+
+			times.push_back((double)(get_current_time() - start) / 1000.0);
+
+			// Cleanup the world.
+			delete [] cpu_u;
+		}
+
+		std::cout << compute_statistics(times) << ",";
 		std::cout.flush();
 
-		// Cleanup the world.
-		delete [] cpu_u;
+		times.clear();
 
-		// Create the world again outside of timing.
-		float *gpu_u = nullptr;
-		create_variable_world_2d(m, gpu_u, numObstacles, maxObstacleSize);
+		for (unsigned int k = 0; k < numExecutions; k++) {
+			// Create the world again outside of timing.
+			float *gpu_u = nullptr;
+			create_variable_world_2d(m, gpu_u, numObstacles, maxObstacleSize);
 
-//		start = std::clock();
-		start = get_current_time();
+			unsigned int *d_m;
+			float *d_u;
+			float *d_uPrime;
 
-		unsigned int *d_m;
-		float *d_u;
-		float *d_uPrime;
+			if (gpu_jacobi_v1_alloc_2d(m, gpu_u, d_m, d_u, d_uPrime) != 0) {
+				return 1;
+			}
 
-		if (gpu_harmonic_alloc_2d(m, gpu_u, d_m, d_u, d_uPrime) != 0) {
-			return 1;
+			long long start = get_current_time();
+
+			if (gpu_jacobi_v1_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
+				return 1;
+			}
+
+			times.push_back((double)(get_current_time() - start) / 1000.0);
+
+			// Cleanup the world.
+			if (gpu_jacobi_v1_free_2d(d_m, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			delete [] gpu_u;
 		}
-		if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
-			return 1;
-		}
 
-//		std::cout << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000.0) << "\t\t";
-		std::cout << (double)(get_current_time() - start) / 1000.0 << ",";
+		std::cout << compute_statistics(times) << ",";
 		std::cout.flush();
 
-		// Cleanup the world.
-		if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {
-			return 1;
+		times.clear();
+
+		for (unsigned int k = 0; k < numExecutions; k++) {
+			// Create the world again outside of timing.
+			float *gpu_u = nullptr;
+			create_variable_world_2d(m, gpu_u, numObstacles, maxObstacleSize);
+
+			int *d_index;
+			bool *d_locked;
+			float *d_u;
+			float *d_uPrime;
+
+			unsigned int n = 2;
+			unsigned int d = m[0] * m[1];
+
+			if (gpu_jacobi_v2_alloc(n, d, m, gpu_u, d_index, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			long long start = get_current_time();
+
+			if (gpu_jacobi_v2_execute(n, d, epsilon, d_index, d_locked, d_u, d_uPrime, numThreadsEpic, stagger) != 0) {
+				return 1;
+			}
+
+			times.push_back((double)(get_current_time() - start) / 1000.0);
+
+			// Cleanup the world.
+			if (gpu_jacobi_v2_free(d_index, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			delete [] gpu_u;
 		}
-		delete [] gpu_u;
+
+		std::cout << compute_statistics(times) << ",";
+		std::cout.flush();
+
+		times.clear();
+
+		for (unsigned int k = 0; k < numExecutions; k++) {
+			// Create the world again outside of timing.
+			float *gpu_u = nullptr;
+			create_variable_world_2d(m, gpu_u, numObstacles, maxObstacleSize);
+
+			unsigned int dNew;
+			unsigned int *cellIndexActualToAdjusted;
+			unsigned int *cellIndexAdjustedToActual;
+			int *d_index;
+			bool *d_locked;
+			float *d_u;
+			float *d_uPrime;
+
+			unsigned int n = 2;
+			unsigned int d = m[0] * m[1];
+
+			if (gpu_jacobi_alloc(n, d, m, cellIndexActualToAdjusted, cellIndexAdjustedToActual, gpu_u,
+					dNew, d_index, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			long long start = get_current_time();
+
+			if (gpu_jacobi_execute(n, dNew, epsilon, d_index, d_locked, d_u, d_uPrime, numThreadsEpic, stagger) != 0) {
+				return 1;
+			}
+
+			times.push_back((double)(get_current_time() - start) / 1000.0);
+
+			// Cleanup the world.
+			if (gpu_jacobi_free(cellIndexActualToAdjusted, cellIndexAdjustedToActual, d_index, d_locked, d_u, d_uPrime) != 0) {
+				return 1;
+			}
+
+			delete [] gpu_u;
+
+			if (k == 0) {
+				std::cout << d << "," << dNew << ",";
+			}
+		}
+
+		std::cout << compute_statistics(times) << std::endl;
+		std::cout.flush();
+
+		times.clear();
+
 		delete [] m;
-
-		std::cout << std::endl;
 	}
 
 	return 0;
@@ -93,11 +192,12 @@ int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stag
 
 int single_trial_2d()
 {
-	unsigned int version = 1; // 0 = CPU, 1 = GPU
+	unsigned int numThreadsEpic = 1024;
+
+	unsigned int version = 3; // 0 = CPU (Jacobi/Gauss-Seidel/SOR), 1 = GPU (v1), 2 = GPU (v2), 3 = GPU (v3)
 	unsigned int cpuVariant = 2; // 0 = Jacobi, 1 = Gauss-Seidel, 2 = SOR
-	unsigned int gpuVariant = 1; // 0 = Naive, 1 = Epic
-	unsigned int numThreads = 256;
 	unsigned int numBlocks = 256;
+	unsigned int numThreads = 256;
 	unsigned int stagger = 100;
 
 	float epsilon = 0.0001f;
@@ -139,7 +239,7 @@ int single_trial_2d()
 			cpu_harmonic_sor_2d(m, u, epsilon, 1.5f);
 		}
 
-		std::cout << "Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+		std::cout << "[cpu] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
 
 		if (printResult) {
 			print_world_2d(m, u);
@@ -148,8 +248,8 @@ int single_trial_2d()
 		// Release everything.
 		delete [] u;
 		delete [] m;
-	} else if (version == 1) { // CUDA
-		std::cout << "GPU Version" << std::endl;
+	} else if (version == 1) { // CUDA (v1)
+		std::cout << "GPU v1";
 		std::cout.flush();
 
 		unsigned int *m = nullptr;
@@ -167,69 +267,145 @@ int single_trial_2d()
 		create_variable_world_2d(m, u, numObstacles, maxObstacleSize);
 		//*/
 
-		if (gpuVariant == 0) {
-			unsigned int *d_m;
-			float *d_u;
-			float *d_uPrime;
+		unsigned int *d_m;
+		float *d_u;
+		float *d_uPrime;
 
-			// Allocate Jacobi iteration on the GPU (naive version).
-			if (gpu_harmonic_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
-				return 1;
-			}
+		// Allocate Jacobi iteration on the GPU (naive version).
+		if (gpu_jacobi_v1_alloc_2d(m, u, d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
 
-			long long start = get_current_time();
+		long long start = get_current_time();
 
-			// Execute Jacobi iteration on the GPU (naive version).
-			if (gpu_harmonic_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
-				return 1;
-			}
+		// Execute Jacobi iteration on the GPU (naive version).
+		if (gpu_jacobi_v1_execute_2d(m, epsilon, d_m, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
+			return 1;
+		}
 
-			std::cout << "[Naive Version] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+		std::cout << "[v1] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
 
-			// Get the world from the GPU and print it.
-			if (printResult) {
-				gpu_harmonic_get_2d(m, d_u, u);
-				print_world_2d(m, u);
-			}
+		// Get the world from the GPU and print it.
+		if (printResult) {
+			gpu_jacobi_v1_get_2d(m, d_u, u);
+			print_world_2d(m, u);
+		}
 
-			// Release everything.
-			if (gpu_harmonic_free_2d(d_m, d_u, d_uPrime) != 0) {
-				return 1;
-			}
-		} else if (gpuVariant == 1) {
-			unsigned int *d_row;
-			unsigned int *d_col;
-			bool *d_locked;
-			float *d_u;
-			float *d_uPrime;
+		// Release everything.
+		if (gpu_jacobi_v1_free_2d(d_m, d_u, d_uPrime) != 0) {
+			return 1;
+		}
 
-			unsigned int n = 2;
-			unsigned int d = m[0] * m[1];
+		delete [] u;
+		delete [] m;
+	} else if (version == 2) { // CUDA (v2)
+		std::cout << "GPU v2";
+		std::cout.flush();
 
-			// Allocate Jacobi iteration on the GPU (epic version).
-			if (gpu_jacobi_alloc(n, d, m, u, d_row, d_col, d_locked, d_u, d_uPrime) != 0) {
-				return 1;
-			}
+		unsigned int *m = nullptr;
 
-			long long start = get_current_time();
+		float *u = nullptr;
 
-			// Execute Jacobi iteration on the GPU (epic version).
-			if (gpu_jacobi_execute(n, d, epsilon, d_row, d_col, d_locked, d_u, d_uPrime, numBlocks, numThreads, stagger) != 0) {
-				return 1;
-			}
+		//* ----- Simple World -----
+		create_simple_world_2d(m, u);
+		//*/
 
-			std::cout << "[Epic Version] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+		/* ----- Variable World -----
+		m = new unsigned int[2];
+		m[0] = size;
+		m[1] = size;
+		create_variable_world_2d(m, u, numObstacles, maxObstacleSize);
+		//*/
 
-			// Get the world from the GPU and print it.
-			if (printResult) {
-				gpu_jacobi_get_all(n, d, d_row, d_col, d_locked, d_u, u);
-				print_world_2d(m, u);
-			}
+		int *d_index;
+		bool *d_locked;
+		float *d_u;
+		float *d_uPrime;
 
-			// Release everything.
-			if (gpu_jacobi_free(d_row, d_col, d_locked, d_u, d_uPrime) != 0) {
-				return 1;
-			}
+		unsigned int n = 2;
+		unsigned int d = m[0] * m[1];
+
+		// Allocate Jacobi iteration on the GPU (epic version).
+		if (gpu_jacobi_v2_alloc(n, d, m, u, d_index, d_locked, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+
+		long long start = get_current_time();
+
+		// Execute Jacobi iteration on the GPU (epic version).
+		if (gpu_jacobi_v2_execute(n, d, epsilon, d_index, d_locked, d_u, d_uPrime, numThreadsEpic, stagger) != 0) {
+			return 1;
+		}
+
+		std::cout << "[v2] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+
+		// Get the world from the GPU and print it.
+		if (printResult) {
+			gpu_jacobi_v2_get_all(n, d, d_index, d_locked, d_u, u);
+			print_world_2d(m, u);
+		}
+
+		// Release everything.
+		if (gpu_jacobi_v2_free(d_index, d_locked, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+
+		delete [] u;
+		delete [] m;
+	} else if (version == 3) { // CUDA (v3)
+		std::cout << "GPU v3";
+		std::cout.flush();
+
+		unsigned int *m = nullptr;
+
+		float *u = nullptr;
+
+		//* ----- Simple World -----
+		create_simple_world_2d(m, u);
+		//*/
+
+		/* ----- Variable World -----
+		m = new unsigned int[2];
+		m[0] = size;
+		m[1] = size;
+		create_variable_world_2d(m, u, numObstacles, maxObstacleSize);
+		//*/
+
+		unsigned int dNew;
+		unsigned int *cellIndexActualToAdjusted;
+		unsigned int *cellIndexAdjustedToActual;
+		int *d_index;
+		bool *d_locked;
+		float *d_u;
+		float *d_uPrime;
+
+		unsigned int n = 2;
+		unsigned int d = m[0] * m[1];
+
+		// Allocate Jacobi iteration on the GPU (epic version).
+		if (gpu_jacobi_alloc(n, d, m, cellIndexActualToAdjusted, cellIndexAdjustedToActual, u,
+				dNew, d_index, d_locked, d_u, d_uPrime) != 0) {
+			return 1;
+		}
+
+		long long start = get_current_time();
+
+		// Execute Jacobi iteration on the GPU (epic version).
+		if (gpu_jacobi_execute(n, dNew, epsilon, d_index, d_locked, d_u, d_uPrime, numThreadsEpic, stagger) != 0) {
+			return 1;
+		}
+
+		std::cout << "[v3] Elapsed Time (in seconds): " << (double)(get_current_time() - start) / 1000.0 << std::endl;
+
+		// Get the world from the GPU and print it.
+		if (printResult) {
+			gpu_jacobi_get_all(n, d, dNew, m, cellIndexActualToAdjusted, d_index, d_locked, d_u, u);
+			print_world_2d(m, u);
+		}
+
+		// Release everything.
+		if (gpu_jacobi_free(cellIndexActualToAdjusted, cellIndexAdjustedToActual, d_index, d_locked, d_u, d_uPrime) != 0) {
+			return 1;
 		}
 
 		delete [] u;

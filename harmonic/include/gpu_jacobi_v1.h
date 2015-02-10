@@ -42,7 +42,7 @@
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
+int gpu_jacobi_v1_alloc_2d(unsigned int *m, float *u,
 		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
 
 /**
@@ -57,7 +57,7 @@ int gpu_harmonic_alloc_2d(unsigned int *m, float *u,
  * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
+int gpu_jacobi_v1_execute_2d(unsigned int *m, float epsilon,
 		unsigned int *d_m, float *d_u, float *d_uPrime,
 		unsigned int numBlocks, unsigned int numThreads,
 		unsigned int stagger);
@@ -69,7 +69,7 @@ int gpu_harmonic_execute_2d(unsigned int *m, float epsilon,
  * @param	u		The entire matrix of values, which is assumed to be created in memory already.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u);
+int gpu_jacobi_v1_get_2d(unsigned int *m, float *d_u, float *u);
 
 /**
  * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.)
@@ -78,7 +78,7 @@ int gpu_harmonic_get_2d(unsigned int *m, float *d_u, float *u);
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime);
+int gpu_jacobi_v1_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime);
 
 /**
  * Allocate and transfer the 3-dimensional harmonic function to the device. (Used for the Jacobi method.)
@@ -89,7 +89,7 @@ int gpu_harmonic_free_2d(unsigned int *d_m, float *d_u, float *d_uPrime);
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
+int gpu_jacobi_v1_alloc_3d(unsigned int *m, float *u,
 		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
 
 /**
@@ -105,9 +105,9 @@ int gpu_harmonic_alloc_3d(unsigned int *m, float *u,
  * @param	stagger		The iteration stagger step to check for convergence.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
+int gpu_jacobi_v1_execute_3d(unsigned int *m, float epsilon,
 		unsigned int *d_m, float *d_u, float *d_uPrime,
-		unsigned int numBlocks, unsigned int numThreadsX, unsigned int numThreadsY,
+		unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numThreads,
 		unsigned int stagger);
 
 /**
@@ -117,7 +117,7 @@ int gpu_harmonic_execute_3d(unsigned int *m, float epsilon,
  * @param	u		The entire matrix of values, which is assumed to be created in memory already.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_get_3d(unsigned int *m, float *d_u, float *u);
+int gpu_jacobi_v1_get_3d(unsigned int *m, float *d_u, float *u);
 
 /**
  * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.)
@@ -126,7 +126,55 @@ int gpu_harmonic_get_3d(unsigned int *m, float *d_u, float *u);
  * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
  * @return	Return 0 if no error, 1 if an error occurred.
  */
-int gpu_harmonic_free_3d(unsigned int *d_m, float *d_u, float *d_uPrime);
+int gpu_jacobi_v1_free_3d(unsigned int *d_m, float *d_u, float *d_uPrime);
+
+/**
+ * Allocate and transfer the 4-dimensional harmonic function to the device. (Used for the Jacobi method.)
+ * @param	m			The 3-dimensional array, specifying the size of each dimension.
+ * @param	u			The harmonic function as an array following the dimensions of m.
+ * @param	d_m			The resulting memory address for the dimension sizes on the device.
+ * @param	d_u			The resulting memory address of the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_jacobi_v1_alloc_4d(unsigned int *m, float *u,
+		unsigned int *&d_m, float *&d_u, float *&d_uPrime);
+
+/**
+ * Iterate the harmonic function solver which uses the Jacobi method.
+ * @param	m			The 3-dimensional array, specifying the dimensions for each dimension.
+ * @param	epsilon		The max convergence check.
+ * @param	d_m			The memory address for the dimension sizes on the device.
+ * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @param	numBlocksX	The number of blocks to execute over the first dimension of u.
+ * @param	numBlocksY	The number of blocks to execute over the second dimension of u.
+ * @param	numThreads	The number of threads to execute over the third dimension of u.
+ * @param	stagger		The iteration stagger step to check for convergence.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_jacobi_v1_execute_4d(unsigned int *m, float epsilon,
+		unsigned int *d_m, float *d_u, float *d_uPrime,
+		unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numBlocksZ, unsigned int numThreads,
+		unsigned int stagger);
+
+/**
+ * Obtain a gradient from the device at a particular cell (index). (Used for the Jacobi method.)
+ * @param	m		The 3-dimensional array, specifying the dimensions for each dimension.
+ * @param	d_u		The memory address on the device for the discrete values on the device.
+ * @param	u		The entire matrix of values, which is assumed to be created in memory already.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_jacobi_v1_get_4d(unsigned int *m, float *d_u, float *u);
+
+/**
+ * Free the harmonic function and the discrete values from the device. (Used for the Jacobi method.)
+ * @param	d_m			The memory address on the device for the dimension sizes.
+ * @param	d_u			The memory address on the device for the discrete values on the device.
+ * @prarm	d_uPrime	The memory address on the device for the extra iteration-focused copy of d_u.
+ * @return	Return 0 if no error, 1 if an error occurred.
+ */
+int gpu_jacobi_v1_free_4d(unsigned int *d_m, float *d_u, float *d_uPrime);
 
 
 #endif // GPU_H

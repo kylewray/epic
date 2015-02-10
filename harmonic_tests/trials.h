@@ -33,8 +33,12 @@
 #include "worlds.h"
 #include "naive.h"
 #include "cpu.h"
-#include "gpu.h"
+#include "gpu_jacobi_v1.h"
+#include "gpu_jacobi_v2.h"
 #include "gpu_jacobi.h"
+
+#include <string>
+#include <vector>
 
 /**
  * Return the current time in milliseconds.
@@ -42,12 +46,19 @@
 long long get_current_time();
 
 /**
+ * Compute some statistics of the given samples.
+ * @param	samples		A vector of samples.
+ * @return	A comma-delimited string of mean and 95% confidence interval.
+ */
+std::string compute_statistics(std::vector<double> samples);
+
+/**
  * Perform a single 2D trial, given the number of arguments.
  * @return	Returns 0 if successful; non-zero otherwise.
  */
 int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stagger, float epsilon,
 		unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
-		unsigned int numObstacles);
+		unsigned int numObstacles, unsigned int numExecutions);
 
 /**
  * Perform a single 2D trial, for sanity check comparison, and output the resultant function.
@@ -62,13 +73,22 @@ int single_trial_2d();
 int trials_3d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numThreads,
 		unsigned int stagger,
 		float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
-		unsigned int numObstacles);
+		unsigned int numObstacles, unsigned int numExecutions);
 
 /**
  * Perform a single 3D trial, for sanity check comparison, and output the resultant function.
  * @return	Returns 0 if successful; non-zero otherwise.
  */
 int single_trial_3d();
+
+/**
+ * Perform a single 4D trial, given the number of arguments.
+ * @return	Returns 0 if successful; non-zero otherwise.
+ */
+int trials_4d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numBlocksZ, unsigned int numThreads,
+		unsigned int stagger,
+		float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
+		unsigned int numObstacles, unsigned int numExecutions);
 
 
 #endif // TRIALS_H

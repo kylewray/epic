@@ -83,5 +83,19 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float *u, float epsilon, float om
  */
 int cpu_harmonic_sor_3d(const unsigned int *m, float *u, float epsilon, float omega);
 
+/**
+ * Compute the fixed point of the 4-dimensional harmonic function provided following
+ * the Successive-Over-Relaxation (SOR) method. The harmonic function u must be defined
+ * such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
+ * flipped. All other values will be modified in-place. The process terminates when the
+ * maximal change between any state is less than epsilon.
+ * @param	m		The number of dimensions.
+ * @param	u		The harmonic function (see above).
+ * @param	epsilon The termination criterion.
+ * @param	omega	The relaxation parameter (step-size-like variable) for the SOR method.
+ * @return	Either 0 if there was no error, or 1 if the parameters were invalid.
+ */
+int cpu_harmonic_sor_4d(const unsigned int *m, float *u, float epsilon, float omega);
+
 
 #endif // CPU_H

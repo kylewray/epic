@@ -74,5 +74,14 @@ void print_world_3d(unsigned int *m, float *u);
  */
 void create_variable_world_3d(const unsigned int *m, float *&h, unsigned int numRectangles, unsigned int maxSize);
 
+/**
+ * Create a variable m1-by-m2-by-m3-by-m4 world with a random number of rectangles.
+ * @param	m				The dimensions of the world (must be an array of size 4).
+ * @param	h				The resulting harmonic function.
+ * @param	numRectangles	The number of rectangles to randomly place.
+ * @param	maxSize			The maximum width and height of the rectangles.
+ */
+void create_variable_world_4d(const unsigned int *m, float *&h, unsigned int numRectangles, unsigned int maxSize);
+
 
 #endif // WORLDS_H
