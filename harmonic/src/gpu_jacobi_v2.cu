@@ -49,9 +49,9 @@ __global__ void gpu_jacobi_v2_check(unsigned int n, unsigned int d,
 }
 
 __global__ void gpu_jacobi_v2_iteration(unsigned int n, unsigned int d,
-		cudaTextureObject_t indexTex,
+//		cudaTextureObject_t indexTex,
 //		cudaTextureObject_t lockedTex,
-//		int *index,
+		int *index,
 		bool *locked,
 		float *u, float *uPrime, float epsilon)
 {
@@ -75,8 +75,8 @@ __global__ void gpu_jacobi_v2_iteration(unsigned int n, unsigned int d,
 //		uPrime[row[i * d + cell] * d + col[i * d + cell]] = val;
 
 		int adjust = 1 - i % 2;
-//		if (signbit((float)index[i * d + cell]) != 0) {
-		if (signbit((float)tex1Dfetch<int>(indexTex, i * d + cell)) != 0) {
+		if (signbit((float)index[i * d + cell]) != 0) {
+//		if (signbit((float)tex1Dfetch<int>(indexTex, i * d + cell)) != 0) {
 			adjust = abs(adjust - 1);
 		}
 
@@ -84,8 +84,8 @@ __global__ void gpu_jacobi_v2_iteration(unsigned int n, unsigned int d,
 
 //		unsigned int adjust = abs((float)((1 - i % 2) - (unsigned int)(signbit((float)index[i * d + cell]) != 0)));
 
-//		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(index[i * d + cell])] = val;
-		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(tex1Dfetch<int>(indexTex, i * d + cell))] = val;
+		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(index[i * d + cell])] = val;
+//		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(tex1Dfetch<int>(indexTex, i * d + cell))] = val;
 	}
 }
 
@@ -298,22 +298,25 @@ int gpu_jacobi_v2_execute(unsigned int n, unsigned int d, float epsilon,
 		return 3;
 	}
 
-	// Assign the index memory as texture memory.
-	cudaResourceDesc indexResDesc;
-	memset(&indexResDesc, 0, sizeof(indexResDesc));
-	indexResDesc.resType = cudaResourceTypeLinear;
-	indexResDesc.res.linear.devPtr = d_index;
-	indexResDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
-	indexResDesc.res.linear.desc.x = 32; // Bits per channel, since int = 2^{32}.
-	indexResDesc.res.linear.sizeInBytes = 2 * n * d * sizeof(int);
+//	// Assign the index memory as texture memory.
+//	cudaResourceDesc indexResDesc;
+//	memset(&indexResDesc, 0, sizeof(indexResDesc));
+//	indexResDesc.resType = cudaResourceTypeLinear;
+//	indexResDesc.res.linear.devPtr = d_index;
+//	indexResDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+//	indexResDesc.res.linear.desc.x = 32; // Bits per channel, since int = 2^{32}.
+//	indexResDesc.res.linear.sizeInBytes = 2 * n * d * sizeof(int);
+//
+//	cudaTextureDesc indexTexDesc;
+//	memset(&indexTexDesc, 0, sizeof(indexTexDesc));
+//	indexTexDesc.readMode = cudaReadModeElementType;
 
-	cudaTextureDesc indexTexDesc;
-	memset(&indexTexDesc, 0, sizeof(indexTexDesc));
-	indexTexDesc.readMode = cudaReadModeElementType;
-
-	// Actually create the texture object.
-	cudaTextureObject_t indexTex = 0;
-	cudaCreateTextureObject(&indexTex, &indexResDesc, &indexTexDesc, nullptr);
+//	// Actually create the texture object.
+//	cudaTextureObject_t indexTex = 0;
+//	if (cudaCreateTextureObject(&indexTex, &indexResDesc, &indexTexDesc, nullptr) != cudaSuccess) {
+//		std::cerr << "Error[gpu_jacobi_v2_execute]: Failed to create texture object." << std::endl;
+//		return 3;
+//	}
 
 //	// Assign the locked memory as texture memory.
 //	cudaResourceDesc lockedResDesc;
@@ -342,9 +345,11 @@ int gpu_jacobi_v2_execute(unsigned int n, unsigned int d, float epsilon,
 
 		// Perform one step of the iteration, either using u and storing in uPrime, or vice versa.
 		if (iterations % 2 == 0) {
-			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_u, d_uPrime, epsilon);
+			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, d_index, d_locked, d_u, d_uPrime, epsilon);
+//			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_u, d_uPrime, epsilon);
 		} else {
-			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_uPrime, d_u, epsilon);
+			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, d_index, d_locked, d_uPrime, d_u, epsilon);
+//			gpu_jacobi_v2_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_uPrime, d_u, epsilon);
 		}
 		if (cudaGetLastError() != cudaSuccess) {
 			std::cerr << "Error[gpu_jacobi_v2_execute]: Failed to execute the 'iteration' kernel." << std::endl;
@@ -389,7 +394,7 @@ int gpu_jacobi_v2_execute(unsigned int n, unsigned int d, float epsilon,
 //	std::cout << "GPU Jacobi 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the texture bindings.
-	cudaDestroyTextureObject(indexTex);
+//	cudaDestroyTextureObject(indexTex);
 //	cudaDestroyTextureObject(lockedTex);
 
 	// Free the memory of the delta value.

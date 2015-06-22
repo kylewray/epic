@@ -138,6 +138,7 @@ int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stag
 
 		times.clear();
 
+		float dNewAverage = 0.0f;
 		for (unsigned int k = 0; k < numExecutions; k++) {
 			// Create the world again outside of timing.
 			float *gpu_u = nullptr;
@@ -174,10 +175,9 @@ int trials_2d(unsigned int numBlocks, unsigned int numThreads, unsigned int stag
 
 			delete [] gpu_u;
 
-			if (k == 0) {
-				std::cout << d << "," << dNew << ",";
-			}
+			dNewAverage = (float)(k * dNewAverage + dNew) / (float)(k + 1);
 		}
+		std::cout << (m[0] * m[1]) << "," << dNewAverage << ",";
 
 		std::cout << compute_statistics(times) << std::endl;
 		std::cout.flush();

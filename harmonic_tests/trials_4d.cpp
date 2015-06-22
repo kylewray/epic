@@ -24,6 +24,8 @@
 
 #include "trials.h"
 
+#include "../../harmonic/include/gpu_utils.h"
+
 int trials_4d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int numBlocksZ, unsigned int numThreads,
 		unsigned int stagger, float epsilon, unsigned int minSize, unsigned int maxSize, unsigned int stepSize,
 		unsigned int numObstacles, unsigned int numExecutions)
@@ -140,6 +142,7 @@ int trials_4d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int num
 
 		times.clear();
 
+		float dNewAverage = 0.0f;
 		for (unsigned int k = 0; k < numExecutions; k++) {
 			// Create the world again outside of timing.
 			float *gpu_u = nullptr;
@@ -176,10 +179,9 @@ int trials_4d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int num
 
 			delete [] gpu_u;
 
-			if (k == 0) {
-				std::cout << d << "," << dNew << ",";
-			}
+			dNewAverage = (float)(k * dNewAverage + dNew) / (float)(k + 1);
 		}
+		std::cout << (m[0] * m[1] * m[2] * m[3]) << "," << dNewAverage << ",";
 
 		std::cout << compute_statistics(times) << std::endl;
 		std::cout.flush();

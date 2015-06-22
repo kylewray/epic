@@ -139,6 +139,7 @@ int trials_3d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int num
 
 		times.clear();
 
+		float dNewAverage = 0.0f;
 		for (unsigned int k = 0; k < numExecutions; k++) {
 			// Create the world again outside of timing.
 			float *gpu_u = nullptr;
@@ -175,10 +176,9 @@ int trials_3d(unsigned int numBlocksX, unsigned int numBlocksY, unsigned int num
 
 			delete [] gpu_u;
 
-			if (k == 0) {
-				std::cout << d << "," << dNew << ",";
-			}
+			dNewAverage = (float)(k * dNewAverage + dNew) / (float)(k + 1);
 		}
+		std::cout << (m[0] * m[1] * m[2]) << "," << dNewAverage << ",";
 
 		std::cout << compute_statistics(times) << std::endl;
 		std::cout.flush();

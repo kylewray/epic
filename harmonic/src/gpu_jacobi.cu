@@ -28,65 +28,51 @@
 #include "../include/gpu_jacobi.h"
 
 __global__ void gpu_jacobi_check(unsigned int n, unsigned int d,
-//		cudaTextureObject_t lockedTex,
-		bool *locked,
-		float *u, float *uPrime, float epsilon, unsigned int *running)
+		bool *locked, float *u, float *uPrime, float epsilon, unsigned int *running)
 {
 	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
 	if (cell >= d || locked[cell]) {
-//	if (cell >= d || tex1Dfetch<unsigned char>(lockedTex, cell) != 0) {
 		return;
 	}
 
-	// If the difference is greater than epsilon, then we need to keep looping.
-	for (unsigned int i = 0; i < 2 * n; i++) {
-		if (fabs(u[i * d + cell] - uPrime[i * d + cell]) > epsilon) {
-			*running = 1;
-		}
+	if (fabs(u[(2 * n) * d + cell] - uPrime[(2 * n) * d + cell]) > epsilon) {
+		*running = 1;
 	}
 }
 
 __global__ void gpu_jacobi_iteration(unsigned int n, unsigned int d,
-		cudaTextureObject_t indexTex,
-//		cudaTextureObject_t lockedTex,
-//		int *index,
-		bool *locked,
-		float *u, float *uPrime, float epsilon)
+		int *index, bool *locked, float *u, float *uPrime, float epsilon, float omega)
 {
 	unsigned int cell = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Skip if the index is over the number of cells, or this is a locked obstacle cell.
 	if (cell >= d || locked[cell]) {
-//	if (cell >= d || tex1Dfetch<unsigned char>(lockedTex, cell) != 0) {
 		return;
 	}
 
-	// Average the 2*n neighbors, following the Jacobi method.
 	float val = 0.0f;
 	for (unsigned int i = 0; i < 2 * n; i++) {
 		val += u[i * d + cell];
 	}
-	val /= (float)(2 * n);
+	val *= omega / (float)(2 * n);
+	val += (1.0f - omega) * u[(2 * n) * d + cell];
 
 	// Update all occurrences of this value.
 	for (unsigned int i = 0; i < 2 * n; i++) {
-//		uPrime[row[i * d + cell] * d + col[i * d + cell]] = val;
-
 		int adjust = 1 - i % 2;
-//		if (signbit((float)index[i * d + cell]) != 0) {
-		if (signbit((float)tex1Dfetch<int>(indexTex, i * d + cell)) != 0) {
+		if (signbit((float)index[i * d + cell]) != 0) {
 			adjust = abs(adjust - 1);
 		}
 
 		__syncthreads();
 
-//		unsigned int adjust = abs((float)((1 - i % 2) - (unsigned int)(signbit((float)index[i * d + cell]) != 0)));
-
-//		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(index[i * d + cell])] = val;
-		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(tex1Dfetch<int>(indexTex, i * d + cell))] = val;
+		uPrime[((unsigned int)(i / 2) * 2 + adjust) * d + abs(index[i * d + cell])] = val;
 	}
+
+	// Finally, update the reference copy of itself on its own column.
+	uPrime[(2 * n) * d + cell] = val;
 }
 
 void gpu_jacobi_index_to_coordinate(unsigned int n, unsigned int *m, unsigned int i, unsigned int *&c)
@@ -336,7 +322,7 @@ int gpu_jacobi_alloc(unsigned int n, unsigned int d, unsigned int *m,
 	}
 
 	// Allocate and copy u.
-	float *uDevice = new float[2 * n * dNew];
+	float *uDevice = new float[(2 * n + 1) * dNew];
 
 	for (unsigned int cell = 0; cell < d; cell++) {
 		// If this is removable, skip it and remember how many have been skipped so far.
@@ -348,24 +334,26 @@ int gpu_jacobi_alloc(unsigned int n, unsigned int d, unsigned int *m,
 			uDevice[neighbor * dNew + cellIndexActualToAdjusted[cell]] =
 					fabs(u[cellIndexAdjustedToActual[abs(index[neighbor * dNew + cellIndexActualToAdjusted[cell]])]]);
 		}
+
+		uDevice[(2 * n) * dNew + cellIndexActualToAdjusted[cell]] = fabs(u[cell]);
 	}
 
-	if (cudaMalloc(&d_u, 2 * n * dNew * sizeof(float)) != cudaSuccess) {
+	if (cudaMalloc(&d_u, (2 * n + 1) * dNew * sizeof(float)) != cudaSuccess) {
 		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the harmonic function values." << std::endl;
 		return 2;
 	}
 
-	if (cudaMemcpy(d_u, uDevice, 2 * n * dNew * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+	if (cudaMemcpy(d_u, uDevice, (2 * n + 1) * dNew * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the harmonic function." << std::endl;;
 		return 3;
 	}
 
-	if (cudaMalloc(&d_uPrime, 2 * n * dNew * sizeof(float)) != cudaSuccess) {
+	if (cudaMalloc(&d_uPrime, (2 * n + 1) * dNew * sizeof(float)) != cudaSuccess) {
 		std::cerr << "Error[gpu_jacobi_alloc]: Failed to allocate device-side memory for the harmonic (prime) function values." << std::endl;
 		return 2;
 	}
 
-	if (cudaMemcpy(d_uPrime, uDevice, 2 * n * dNew * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+	if (cudaMemcpy(d_uPrime, uDevice, (2 * n + 1) * dNew * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		std::cerr << "Error[gpu_jacobi_alloc]: Failed to copy memory from host to device for the harmonic function (prime)." << std::endl;
 		return 3;
 	}
@@ -418,39 +406,22 @@ int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
 		return 3;
 	}
 
-	// Assign the index memory as texture memory.
-	cudaResourceDesc indexResDesc;
-	memset(&indexResDesc, 0, sizeof(indexResDesc));
-	indexResDesc.resType = cudaResourceTypeLinear;
-	indexResDesc.res.linear.devPtr = d_index;
-	indexResDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
-	indexResDesc.res.linear.desc.x = 32; // Bits per channel, since int = 2^{32}.
-	indexResDesc.res.linear.sizeInBytes = 2 * n * d * sizeof(int);
-
-	cudaTextureDesc indexTexDesc;
-	memset(&indexTexDesc, 0, sizeof(indexTexDesc));
-	indexTexDesc.readMode = cudaReadModeElementType;
-
-	// Actually create the texture object.
-	cudaTextureObject_t indexTex = 0;
-	cudaCreateTextureObject(&indexTex, &indexResDesc, &indexTexDesc, nullptr);
-
-//	// Assign the locked memory as texture memory.
-//	cudaResourceDesc lockedResDesc;
-//	memset(&lockedResDesc, 0, sizeof(lockedResDesc));
-//	lockedResDesc.resType = cudaResourceTypeLinear;
-//	lockedResDesc.res.linear.devPtr = d_locked;
-//	lockedResDesc.res.linear.desc.f = cudaChannelFormatKindUnsigned;
-//	lockedResDesc.res.linear.desc.x = 8; // Bits per channel, since bool = 2^{8}.
-//	lockedResDesc.res.linear.sizeInBytes = d * sizeof(unsigned char); // Same as bool.
+//	// Assign the index memory as texture memory.
+//	cudaResourceDesc indexResDesc;
+//	memset(&indexResDesc, 0, sizeof(indexResDesc));
+//	indexResDesc.resType = cudaResourceTypeLinear;
+//	indexResDesc.res.linear.devPtr = d_index;
+//	indexResDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+//	indexResDesc.res.linear.desc.x = 32; // Bits per channel, since int = 2^{32}.
+//	indexResDesc.res.linear.sizeInBytes = 2 * n * d * sizeof(int);
 //
-//	cudaTextureDesc lockedTexDesc;
-//	memset(&lockedTexDesc, 0, sizeof(lockedTexDesc));
-//	lockedTexDesc.readMode = cudaReadModeElementType;
+//	cudaTextureDesc indexTexDesc;
+//	memset(&indexTexDesc, 0, sizeof(indexTexDesc));
+//	indexTexDesc.readMode = cudaReadModeElementType;
 //
 //	// Actually create the texture object.
-//	cudaTextureObject_t lockedTex = 0;
-//	cudaCreateTextureObject(&lockedTex, &lockedResDesc, &lockedTexDesc, nullptr);
+//	cudaTextureObject_t indexTex = 0;
+//	cudaCreateTextureObject(&indexTex, &indexResDesc, &indexTexDesc, nullptr);
 
 	// Iterate until convergence.
 	unsigned int iterations = 0;
@@ -458,14 +429,22 @@ int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
 	// Important Note: Must ensure that iterations is even so that d_u stores the final result, not d_uPrime.
 	// Also, always run at least 'stagger' iterations.
 	while (*running > 0 || iterations < stagger) {
+//	while (iterations < 10) {
 //		std::cout << "Iteration " << iterations << std::endl; std::cout.flush();
 
 		// Perform one step of the iteration, either using u and storing in uPrime, or vice versa.
 		if (iterations % 2 == 0) {
-			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_u, d_uPrime, epsilon);
+			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, d_index, d_locked, d_u, d_uPrime, epsilon, 1.0f); //0.5f);
+//			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_u, d_uPrime, epsilon, 0.5f);
 		} else {
-			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_uPrime, d_u, epsilon);
+			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, d_index, d_locked, d_uPrime, d_u, epsilon, 1.0f); //1.5f);
+//			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_uPrime, d_u, epsilon, 1.5f);
 		}
+//		if (iterations % 2 == 0) {
+//			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_u, d_uPrime, epsilon, 0.5f + 0.5f * min(1.0f, (float)iterations / 100.0f));
+//		} else {
+//			gpu_jacobi_iteration<<< numBlocks, numThreads >>>(n, d, indexTex, d_locked, d_uPrime, d_u, epsilon, 30.0f / (float)min(30, iterations + 1));
+//		}
 		if (cudaGetLastError() != cudaSuccess) {
 			std::cerr << "Error[gpu_jacobi_execute]: Failed to execute the 'iteration' kernel." << std::endl;
 			return 3;
@@ -509,8 +488,7 @@ int gpu_jacobi_execute(unsigned int n, unsigned int d, float epsilon,
 //	std::cout << "GPU Jacobi 2D: Completed in " << iterations << " iterations." << std::endl;
 
 	// Free the texture bindings.
-	cudaDestroyTextureObject(indexTex);
-//	cudaDestroyTextureObject(lockedTex);
+//	cudaDestroyTextureObject(indexTex);
 
 	// Free the memory of the delta value.
 	delete running;
@@ -541,9 +519,9 @@ int gpu_jacobi_get_all(unsigned int n, unsigned int d, unsigned int dNew, unsign
 		return 1;
 	}
 
-	float *uDevice = new float[2 * n * dNew];
+	float *uDevice = new float[(2 * n + 1) * dNew];
 
-	if (cudaMemcpy(uDevice, d_u, 2 * n * dNew * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+	if (cudaMemcpy(uDevice, d_u, (2 * n + 1) * dNew * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
 		std::cerr << "Error[gpu_jacobi_get_all]: Failed to copy memory from device to host for the resultant u values." << std::endl;
 		return 1;
 	}
@@ -556,15 +534,16 @@ int gpu_jacobi_get_all(unsigned int n, unsigned int d, unsigned int dNew, unsign
 			continue;
 		}
 
-		unsigned int neighbor = 0; // Just fix one of the neighbors.
+//		unsigned int neighbor = 0; // Just fix one of the neighbors.
+//
+//		int adjust = 1 - neighbor % 2;
+//		if (signbit((float)index[neighbor * dNew + cellIndexActualToAdjusted[cell]]) != 0) {
+//			adjust = abs(adjust - 1);
+//		}
+//
+//		u[cell] = uDevice[((unsigned int)(neighbor / 2) * 2 + adjust) * dNew + abs(index[neighbor * dNew + cellIndexActualToAdjusted[cell]])];
 
-		int adjust = 1 - neighbor % 2;
-		if (signbit((float)index[neighbor * dNew + cellIndexActualToAdjusted[cell]]) != 0) {
-			adjust = abs(adjust - 1);
-		}
-//		unsigned int adjust = abs((float)((1 - neighbor % 2) - (unsigned int)(signbit((float)index[neighbor * d + cell]) != 0)));
-
-		u[cell] = uDevice[((unsigned int)(neighbor / 2) * 2 + adjust) * dNew + abs(index[neighbor * dNew + cellIndexActualToAdjusted[cell]])];
+		u[cell] = uDevice[(2 * n) * dNew + cellIndexActualToAdjusted[cell]];
 
 		if (locked[cellIndexActualToAdjusted[cell]]) {
 			u[cell] = -u[cell];

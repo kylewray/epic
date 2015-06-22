@@ -41,10 +41,16 @@ int cpu_harmonic_jacobi_2d(const unsigned int *m, float *u, float epsilon)
 		uPrime[i] = u[i];
 	}
 
+	// Make sure 'information' can at least be propagated throughout the entire grid.
+	unsigned int mMax = 0;
+	for (unsigned int i = 0; i < 4; i++) {
+		mMax = std::max(mMax, m[i]);
+	}
+
 	unsigned int iterations = 0;
 	float delta = epsilon + 1.0f;
 
-	while (delta > epsilon || (delta <= epsilon && iterations % 2 == 1)) {
+	while (delta > epsilon || iterations < mMax || (delta <= epsilon && iterations % 2 == 1)) {
 		delta = 0.0f;
 
 		for (unsigned int i = 0; i < m[0]; i++) {
@@ -91,10 +97,16 @@ int cpu_harmonic_gauss_seidel_2d(const unsigned int *m, float *u, float epsilon)
 		return 1;
 	}
 
+	// Make sure 'information' can at least be propagated throughout the entire grid.
+	unsigned int mMax = 0;
+	for (unsigned int i = 0; i < 2; i++) {
+		mMax = std::max(mMax, m[i]);
+	}
+
 	unsigned int iterations = 0;
 	float delta = epsilon + 1.0f;
 
-	while (delta > epsilon) {
+	while (delta > epsilon || iterations < mMax) {
 		delta = 0.0f;
 
 		for (unsigned int i = 0; i < m[0]; i++) {
@@ -136,10 +148,16 @@ int cpu_harmonic_sor_2d(const unsigned int *m, float *u, float epsilon, float om
 		return 1;
 	}
 
+	// Make sure 'information' can at least be propagated throughout the entire grid.
+	unsigned int mMax = 0;
+	for (unsigned int i = 0; i < 2; i++) {
+		mMax = std::max(mMax, m[i]);
+	}
+
 	unsigned int iterations = 0;
 	float delta = epsilon + 1.0f;
 
-	while (delta > epsilon) {
+	while (delta > epsilon || iterations < mMax) {
 		delta = 0.0f;
 
 		for (unsigned int i = 0; i < m[0]; i++) {
@@ -181,10 +199,16 @@ int cpu_harmonic_sor_3d(const unsigned int *m, float *u, float epsilon, float om
 		return 1;
 	}
 
+	// Make sure 'information' can at least be propagated throughout the entire grid.
+	unsigned int mMax = 0;
+	for (unsigned int i = 0; i < 3; i++) {
+		mMax = std::max(mMax, m[i]);
+	}
+
 	unsigned int iterations = 0;
 	float delta = epsilon + 1.0f;
 
-	while (delta > epsilon) {
+	while (delta > epsilon || iterations < mMax) {
 		delta = 0.0f;
 
 		for (unsigned int i = 0; i < m[0]; i++) {
@@ -238,10 +262,16 @@ int cpu_harmonic_sor_4d(const unsigned int *m, float *u, float epsilon, float om
 		return 1;
 	}
 
+	// Make sure 'information' can at least be propagated throughout the entire grid.
+	unsigned int mMax = 0;
+	for (unsigned int i = 0; i < 4; i++) {
+		mMax = std::max(mMax, m[i]);
+	}
+
 	unsigned int iterations = 0;
 	float delta = epsilon + 1.0f;
 
-	while (delta > epsilon) {
+	while (delta > epsilon || iterations < mMax) {
 		delta = 0.0f;
 
 		for (unsigned int i = 0; i < m[0]; i++) {

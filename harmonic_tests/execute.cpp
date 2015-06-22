@@ -27,9 +27,9 @@
 int main(int argc, char *argv[])
 {
 	// Execute the full trials.
-	trials_2d(1024, 1024, 100, 0.0001f, 128, 2048, 128, 100, 1);
-//	trials_3d(32, 32, 256, 100, 0.0001f, 32, 256, 32, 100, 1); // The two '256' values should be equal if you change it (if possible).
-//	trials_4d(32, 32, 32, 256, 100, 0.0001f, 32, 256, 8, 100, 1); // The two '256' values should be equal if you change it (if possible).
+//	trials_2d(1024, 1024, 100, 0.0001f, 32, 2048, 32, 100, 10);
+//	trials_3d(32, 32, 512, 100, 0.0001f, 16, 512, 16, 200, 10); // The two '512' values should be equal if you change it (if possible).
+//	trials_4d(16, 16, 16, 96, 100, 0.0001f, 16, 80, 8, 400, 10); // The two '80' values should be equal if you change it (if possible).
 
 
 	// Examine different size problems (e.g., min=128, max=128, step=32 (ignored)).
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 //	trials_2d(512, 512, 100, 0.0001f, 1024, 1024, 32, 10);
 //	trials_2d(512, 512, 100, 0.0001f, 2048, 2048, 32, 10);
 
-//	single_trial_2d();
+	single_trial_2d();
 
 
 

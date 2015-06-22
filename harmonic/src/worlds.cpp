@@ -28,6 +28,9 @@
 
 #include "../include/worlds.h"
 
+//#define DEFAULT_CELL_VALUE 0.0f
+#define DEFAULT_CELL_VALUE 0.9f
+
 void create_simple_world_2d(unsigned int *&m, float *&h)
 {
 	m = new unsigned int[2];
@@ -38,8 +41,7 @@ void create_simple_world_2d(unsigned int *&m, float *&h)
 	// By default, all are zero without signed bit flipped.
 	for (int i = 0; i < m[0] / 2; i++) {
 		for (int j = 0; j < m[1] / 2; j++) {
-//			h[i * m[1] + j] = 0.0f;
-			h[i * m[1] + j] = 0.9f; // Most values are closer to 1 than 0, so this will improve performance.
+			h[i * m[1] + j] = DEFAULT_CELL_VALUE;
 		}
 	}
 
@@ -89,8 +91,7 @@ void create_variable_world_2d(const unsigned int *m, float *&h, unsigned int num
 	// By default, all are zero without signed bit flipped.
 	for (int i = 0; i < m[0]; i++) {
 		for (int j = 0; j < m[1]; j++) {
-//			h[i * m[1] + j] = 0.0f;
-			h[i * m[1] + j] = 0.9f; // Most values are closer to 1 than 0, so this will improve performance.
+			h[i * m[1] + j] = DEFAULT_CELL_VALUE;
 		}
 	}
 
@@ -142,8 +143,7 @@ void create_simple_world_3d(unsigned int *&m, float *&h)
 	for (int i = 0; i < m[0]; i++) {
 		for (int j = 0; j < m[1]; j++) {
 			for (int k = 0; k < m[2]; k++) {
-//				h[i * m[1] * m[2] + j * m[2] + k] = 0.0f;
-				h[i * m[1] * m[2] + j * m[2] + k] = 0.9f; // Most values are closer to 1 than 0, so this will improve performance.
+				h[i * m[1] * m[2] + j * m[2] + k] = DEFAULT_CELL_VALUE;
 			}
 		}
 	}
@@ -211,8 +211,7 @@ void create_variable_world_3d(const unsigned int *m, float *&h, unsigned int num
 	for (int i = 0; i < m[0]; i++) {
 		for (int j = 0; j < m[1]; j++) {
 			for (int k = 0; k < m[2]; k++) {
-//				h[i * m[1] * m[2] + j * m[2] + k] = 0.0f;
-				h[i * m[1] * m[2] + j * m[2] + k] = 0.9f; // Most values are closer to 1 than 0, so this will improve performance.
+				h[i * m[1] * m[2] + j * m[2] + k] = DEFAULT_CELL_VALUE;
 			}
 		}
 	}
@@ -279,8 +278,7 @@ void create_variable_world_4d(const unsigned int *m, float *&h, unsigned int num
 		for (int j = 0; j < m[1]; j++) {
 			for (int k = 0; k < m[2]; k++) {
 				for (int l = 0; l < m[3]; l++) {
-//					h[i * m[1] * m[2] * m[3] + j * m[2] * m[3] + k * m[3] + l] = 0.0f;
-					h[i * m[1] * m[2] * m[3] + j * m[2] * m[3] + k * m[3] + l] = 0.0f; // Most values are closer to 1 than 0, so this will improve performance.
+					h[i * m[1] * m[2] * m[3] + j * m[2] * m[3] + k * m[3] + l] = DEFAULT_CELL_VALUE;
 				}
 			}
 		}
