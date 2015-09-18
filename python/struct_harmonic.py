@@ -44,18 +44,18 @@ class StructHarmonic(ct.Structure):
 
     _fields_ = [("n", ct.c_uint),
                 ("m", ct.POINTER(ct.c_uint)),
-                ("u", ct.POINTER(ct.c_uint)),
+                ("u", ct.POINTER(ct.c_float)),
                 ("locked", ct.POINTER(ct.c_uint)),
                 ("epsilon", ct.c_float),
                 ("omega", ct.c_float),
                 ("currentIteration", ct.c_uint),
                 ("d_m", ct.POINTER(ct.c_uint)),
-                ("d_u", ct.POINTER(ct.c_uint)),
+                ("d_u", ct.POINTER(ct.c_float)),
                 ("d_locked", ct.POINTER(ct.c_uint)),
                 ]
 
 
-_harmonic.harmonic_sor_2d_cpu.argtypes = (ct.POINTER(StructHarmonic))
+_harmonic.harmonic_sor_2d_cpu.argtypes = tuple([ct.POINTER(StructHarmonic)])
 
 _harmonic.harmonic_sor_2d_gpu.argtypes = (ct.POINTER(StructHarmonic),
                                             ct.c_uint)     # numThreads

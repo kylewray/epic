@@ -41,13 +41,13 @@ class Harmonic(sh.StructHarmonic):
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
         self.n = int(0)
         self.m = ct.POINTER(ct.c_uint)()
-        self.u = ct.POINTER(ct.c_uint)()
+        self.u = ct.POINTER(ct.c_float)()
         self.locked = ct.POINTER(ct.c_uint)()
         self.epsilon = float(0.01)
         self.omega = float(1.5)
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
-        self.d_u = ct.POINTER(ct.c_uint)()
+        self.d_u = ct.POINTER(ct.c_float)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
     def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=float(0.01)):
@@ -68,7 +68,7 @@ class Harmonic(sh.StructHarmonic):
         if process == 'gpu':
             if algorithm == 'sor':
                 if self.n == 2:
-                    result = nm._harmonic.harmonic_sor_2d_gpu(self, int(numThreads))
+                    result = sh._harmonic.harmonic_sor_2d_gpu(self, int(numThreads))
                     if result != 0:
                         print("Failed to execute the 'harmonic' library's GPU SOR solver.")
                         process = 'cpu'
@@ -82,7 +82,7 @@ class Harmonic(sh.StructHarmonic):
         if process == 'cpu':
             if algorithm == 'sor':
                 if self.n == 2:
-                    result = nm._harmonic.harmonic_sor_2d_cpu(self)
+                    result = sh._harmonic.harmonic_sor_2d_cpu(self)
                     if result != 0:
                         print("Failed to execute the 'harmonic' library's GPU SOR solver.")
                         process = 'cpu'
@@ -109,9 +109,14 @@ class Harmonic(sh.StructHarmonic):
         result += "epsilon:  " + str(self.epsilon) + "\n"
         result += "omega:    " + str(self.omega) + "\n\n"
 
-        result += "u:\n" + str(np.array(self.u).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
+        total = 1.0
+        for i in range(self.n):
+            total *= self.m[i]
+        total = int(total)
 
-        result += "locked:\n" + str(np.array(self.u).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
+        result += "u:\n" + str(np.array([self.u[i] for i in range(total)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
+
+        result += "locked:\n" + str(np.array([self.locked[i] for i in range(total)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
 
         return result
 

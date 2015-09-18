@@ -44,7 +44,7 @@ typedef struct Harmonic {
     unsigned int n;
     unsigned int *m;
 
-    unsigned int *u;
+    float *u;
     unsigned int *locked;
 
     float epsilon;
@@ -54,7 +54,7 @@ typedef struct Harmonic {
     unsigned int currentIteration;
 
     unsigned int *d_m;
-    unsigned int *d_u;
+    float *d_u;
     unsigned int *d_locked;
 } Harmonic;
 

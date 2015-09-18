@@ -36,9 +36,8 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
             harmonic->locked == nullptr || harmonic->epsilon <= 0.0f ||
-            harmonic->omega < 1.0f || harmonic->omega >= 2.0f ||
-            numThreads == 0 || numThreads % 32 != 0) {
-        fprintf(stderr, "Error[harmonic_sor_2d_gpu]: %s\n", "Invalid data.");
+            harmonic->omega < 1.0f || harmonic->omega >= 2.0f) {
+        fprintf(stderr, "Error[harmonic_sor_2d_cpu]: %s\n", "Invalid data.");
         return HARMONIC_ERROR_INVALID_DATA;
     }
 
@@ -59,13 +58,15 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
         for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
             // Determine if this rows starts with a red (even row) or black (odd row) cell, and
             // update the opposite depending on how many iterations there have been.
-            unsigned int offset = (unsigned int)(harmonic->currentIteration % 2 != x0 % 2);
+            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
 
             for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
                 // If this is locked, then skip it.
                 if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
                     continue;
                 }
+
+                float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
 
                 // Update the value at this location.
                 harmonic->u[x0 * harmonic->m[1] + x1] += 0.25f * (harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
@@ -75,7 +76,7 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
                                                                   4.0f * harmonic->u[x0 * harmonic->m[1] + x1]);
 
                 // Compute the updated delta.
-                delta = std::max(delta, (float)harmonic->u[x0 * harmonic->m[1] + x1]);
+                delta = std::max(delta, std::fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
             }
         }
 
