@@ -33,9 +33,10 @@
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int gpu_harmonic_sor_2d(Harmonic *harmonic);
+extern "C" int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 /**
  *  Compute the fixed point of the 3-dimensional harmonic function provided following
@@ -44,9 +45,10 @@ extern "C" int gpu_harmonic_sor_2d(Harmonic *harmonic);
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int gpu_harmonic_sor_3d(Harmonic *harmonic);
+//extern "C" int harmonic_sor_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 /**
  *  Compute the fixed point of the 4-dimensional harmonic function provided following
@@ -55,9 +57,10 @@ extern "C" int gpu_harmonic_sor_2d(Harmonic *harmonic);
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int gpu_harmonic_sor_4d(Harmonic *harmonic);
+//extern "C" int harmonic_sor_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 
 #endif // HARMONIC_SOR_GPU_H

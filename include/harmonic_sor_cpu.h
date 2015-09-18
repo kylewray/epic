@@ -35,7 +35,7 @@
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int cpu_harmonic_sor_2d(Harmonic *harmonic);
+extern "C" int harmonic_sor_2d_cpu(Harmonic *harmonic);
 
 /**
  *  Compute the fixed point of the 3-dimensional harmonic function provided following
@@ -46,7 +46,7 @@ extern "C" int cpu_harmonic_sor_2d(Harmonic *harmonic);
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int cpu_harmonic_sor_3d(Harmonic *harmonic);
+//extern "C" int harmonic_sor_3d_cpu(Harmonic *harmonic);
 
 /**
  *  Compute the fixed point of the 4-dimensional harmonic function provided following
@@ -57,7 +57,7 @@ extern "C" int cpu_harmonic_sor_2d(Harmonic *harmonic);
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int cpu_harmonic_sor_4d(Harmonic *harmonic);
+//extern "C" int harmonic_sor_4d_cpu(Harmonic *harmonic);
 
 
 #endif // HARMONIC_SOR_CPU_H

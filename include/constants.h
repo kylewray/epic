@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2014 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,20 +22,14 @@
  */
 
 
-#ifndef ERROR_CODES_H
-#define ERROR_CODES_H
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 
 
-#define HARMONIC_SUCCESS                        0
-#define HARMONIC_ERROR_INVALID_DATA             1
-#define HARMONIC_ERROR_INVALID_CUDA_PARAM       2
-#define HARMONIC_ERROR_DEVICE_MALLOC            3
-#define HARMONIC_ERROR_MEMCPY_TO_DEVICE         4
-#define HARMONIC_ERROR_MEMCPY_TO_HOST           5
-#define HARMONIC_ERROR_DEVICE_FREE              6
-#define HARMONIC_ERROR_KERNEL_EXECUTION         7
-#define HARMONIC_ERROR_DEVICE_SYNCHRONIZE       8
+// This is determined by hardware, so what is below is a 'safe' guess. If this is
+// off, the program might return 'nan' or 'inf'.
+#define FLT_MAX 1e+35
 
 
-#endif // ERROR_CODES_H
+#endif // CONSTANTS_H
 
