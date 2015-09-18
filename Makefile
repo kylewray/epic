@@ -1,7 +1,7 @@
 COMMAND = nvcc
 FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
 
-all: nova
+all: harmonic
 
 nova: harmonic_gpu.o harmonic_cpu.o
 	mkdir -p lib
