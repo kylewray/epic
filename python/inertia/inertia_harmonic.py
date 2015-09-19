@@ -28,18 +28,18 @@ import os.path
 # Check if we need to create the harmonic variable. If so, import the correct library
 # file depending on the platform.
 #try:
-#    _harmonic
+#    _inertia
 #except NameError:
-_harmonic = None
+_inertia = None
 if platform.system() == "Windows":
-    _harmonic = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "lib", "harmonic.dll"))
+    _inertia = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "lib", "inertia.dll"))
 else:
-    _harmonic = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "lib", "harmonic.so"))
+    _inertia = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "lib", "inertia.so"))
 
 
-class StructHarmonic(ct.Structure):
+class InertiaHarmonic(ct.Structure):
     """ The C struct Harmonic object. """
 
     _fields_ = [("n", ct.c_uint),
@@ -55,8 +55,8 @@ class StructHarmonic(ct.Structure):
                 ]
 
 
-_harmonic.harmonic_sor_2d_cpu.argtypes = tuple([ct.POINTER(StructHarmonic)])
+_inertia.harmonic_sor_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
-_harmonic.harmonic_sor_2d_gpu.argtypes = (ct.POINTER(StructHarmonic),
+_inertia.harmonic_sor_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
                                             ct.c_uint)     # numThreads
 

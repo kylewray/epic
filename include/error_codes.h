@@ -26,15 +26,15 @@
 #define ERROR_CODES_H
 
 
-#define HARMONIC_SUCCESS                        0
-#define HARMONIC_ERROR_INVALID_DATA             1
-#define HARMONIC_ERROR_INVALID_CUDA_PARAM       2
-#define HARMONIC_ERROR_DEVICE_MALLOC            3
-#define HARMONIC_ERROR_MEMCPY_TO_DEVICE         4
-#define HARMONIC_ERROR_MEMCPY_TO_HOST           5
-#define HARMONIC_ERROR_DEVICE_FREE              6
-#define HARMONIC_ERROR_KERNEL_EXECUTION         7
-#define HARMONIC_ERROR_DEVICE_SYNCHRONIZE       8
+#define INERTIA_SUCCESS                         0
+#define INERTIA_ERROR_INVALID_DATA              1
+#define INERTIA_ERROR_INVALID_CUDA_PARAM        2
+#define INERTIA_ERROR_DEVICE_MALLOC             3
+#define INERTIA_ERROR_MEMCPY_TO_DEVICE          4
+#define INERTIA_ERROR_MEMCPY_TO_HOST            5
+#define INERTIA_ERROR_DEVICE_FREE               6
+#define INERTIA_ERROR_KERNEL_EXECUTION          7
+#define INERTIA_ERROR_DEVICE_SYNCHRONIZE        8
 
 
 #endif // ERROR_CODES_H

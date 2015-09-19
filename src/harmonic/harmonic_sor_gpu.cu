@@ -38,7 +38,7 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
             harmonic->locked == nullptr || harmonic->epsilon <= 0.0f ||
             harmonic->omega < 1.0f || harmonic->omega >= 2.0f) {
         fprintf(stderr, "Error[harmonic_sor_2d_cpu]: %s\n", "Invalid data.");
-        return HARMONIC_ERROR_INVALID_DATA;
+        return INERTIA_ERROR_INVALID_DATA;
     }
 
     // Make sure 'information' can at least be propagated throughout the entire grid.
@@ -83,7 +83,7 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
         harmonic->currentIteration++;
     }
 
-    return HARMONIC_SUCCESS;
+    return INERTIA_SUCCESS;
 }
 
 //int harmonic_sor_3d_gpu(Harmonic *harmonic, unsigned int numThreads);

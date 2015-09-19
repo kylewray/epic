@@ -26,8 +26,8 @@ import sys
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
-from harmonic import *
-from harmonic_map import *
+from inertia.harmonic import *
+from inertia.harmonic_map import *
 
 
 #harmonicMapFile = os.path.join(thisFilePath, "images/simple.png")

@@ -27,7 +27,7 @@
 
 
 /**
- *  A structure for a Harmonic object within the harmonic library.
+ *  A structure for a Harmonic object within the inertia library.
  *  @param  n           The number of dimensions.
  *  @param  m           The size of each dimension.
  *  @param  u           The log values; assumes boarder values are locked.

@@ -28,10 +28,10 @@ import ctypes as ct
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-import struct_harmonic as sh
+import inertia_harmonic as ih
 
 
-class Harmonic(sh.StructHarmonic):
+class Harmonic(ih.InertiaHarmonic):
     """ A Harmonic object that can be used to easily solve harmonic functions. """
 
 
@@ -68,7 +68,7 @@ class Harmonic(sh.StructHarmonic):
         if process == 'gpu':
             if algorithm == 'sor':
                 if self.n == 2:
-                    result = sh._harmonic.harmonic_sor_2d_gpu(self, int(numThreads))
+                    result = ih._inertia.harmonic_sor_2d_gpu(self, int(numThreads))
                     if result != 0:
                         print("Failed to execute the 'harmonic' library's GPU SOR solver.")
                         process = 'cpu'
@@ -82,7 +82,7 @@ class Harmonic(sh.StructHarmonic):
         if process == 'cpu':
             if algorithm == 'sor':
                 if self.n == 2:
-                    result = sh._harmonic.harmonic_sor_2d_cpu(self)
+                    result = ih._inertia.harmonic_sor_2d_cpu(self)
                     if result != 0:
                         print("Failed to execute the 'harmonic' library's GPU SOR solver.")
                         process = 'cpu'
