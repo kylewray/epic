@@ -33,6 +33,8 @@ from harmonic_map import *
 #harmonicMapFile = os.path.join(thisFilePath, "images/simple.png")
 #harmonicMapFile = os.path.join(thisFilePath, "images/simple_big.png")
 harmonicMapFile = os.path.join(thisFilePath, "images/maze_1.png")
+#harmonicMapFile = os.path.join(thisFilePath, "images/maze_2.png")
+
 harmonicMap = HarmonicMap()
 harmonicMap.load(harmonicMapFile)
 print(harmonicMap)

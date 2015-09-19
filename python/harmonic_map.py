@@ -87,6 +87,8 @@ class HarmonicMap(harm.Harmonic):
         cv2.imshow("Harmonic Map Log-Scale Image", self.image)
         #cv2.ResizeWindow("Harmonic Map Log-Scale Image", max(100, self.image.shape[0]), max(100, self.image.shape[1]))
 
-        key = cv2.waitKey(0)
+        key = None
+        while key != 27:
+            key = cv2.waitKey(0)
         cv2.destroyAllWindows()
 
