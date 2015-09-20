@@ -40,6 +40,8 @@ class HarmonicMap(harm.Harmonic):
 
         super().__init__()
 
+        self.windowTitle = "Harmonic Map"
+        self.originalImage = None
         self.image = None
 
     def load(self, filename):
@@ -51,6 +53,7 @@ class HarmonicMap(harm.Harmonic):
 
         # Load the image and handle errors.
         self.image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+        self.originalImage = self.image.copy()
 
         if self.image is None:
             print("Failed to load image file '%s'." % (filename))
@@ -63,8 +66,8 @@ class HarmonicMap(harm.Harmonic):
         self.m = array_type_n_uint(*np.array([self.image.shape[0], self.image.shape[1]]))
 
         # TODO: Do the log conversion here.
-        array_type_m_float = ct.c_float * (self.image.size)
-        self.u = array_type_m_float(*np.array([[float(self.image[y, x] == 0) \
+        array_type_m_double = ct.c_double * (self.image.size)
+        self.u = array_type_m_double(*np.array([[1.0 - float(self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
 
@@ -73,19 +76,87 @@ class HarmonicMap(harm.Harmonic):
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
 
+    def _compute_streamline(self, x, y):
+        """ Compute a streamline (series of points) starting from this initial (x, y) location.
+
+            Parameters:
+                x   --  The x location to start.
+                y   --  The y location to start.
+
+            Returns:
+                The list of points from this starting location to a goal.
+        """
+
+        maxPoints = self.image.size
+
+        points = [(x, y)]
+
+        while self.u[y * self.m[1] + x] != 0.0 and self.u[y * self.m[1] + x] != 1.0 and len(points) < maxPoints:
+            uStar = 1.0
+            coordStar = None
+
+            for i in [-1, 0, 1]:
+                for j in [-1, 0, 1]:
+                    if self.u[(y + j) * self.m[1] + (x + i)] < uStar:
+                        uStar = self.u[(y + j) * self.m[1] + (x + i)]
+                        coordStar = (x + i, y + j)
+
+            if coordStar[0] == x and coordStar[1] == y:
+                break
+
+            x = coordStar[0]
+            y = coordStar[1]
+
+            points += [(coordStar[0], coordStar[1])]
+
+            print(coordStar, uStar)
+
+        return points
+
+    def _draw_image(self):
+        """ Draw the image given the updated u values. """
+
+        #epsilon = 1e-30
+
+        # Convert the 2d potential back into an image.
+        self.image = self.originalImage.copy()
+        #self.image = np.array([[int(np.log((self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon) / np.log(epsilon) * 255.0) \
+        #self.image = np.array([[int((1.0 - self.u[y * self.m[1] + x]) * 255.0) \
+        #                            for x in range(self.m[1])] \
+        #                        for y in range(self.m[0])], dtype=np.uint8)
+
     def show(self):
         """ Render the current image to the screen; the escape key quits. """
 
-        # TODO: Do the inverse log conversion here.
-        # Convert the 2d potential back into an image.
-        self.image = np.array([[int((1.0 - self.u[y * self.m[1] + x]) * 255.0) \
-                                    for x in range(self.m[1])] \
-                                for y in range(self.m[0])], dtype=np.uint8)
+        def mouse_clicked(event, x, y, flags, param):
+            """ Handle mouse clicks in the cv window. This draws a rough streamline from the
+                clicked position to the goal.
 
-        print(self.image)
+                Parameters:
+                    event   --  The event object (button up, down, etc.).
+                    x       --  The x location clicked.
+                    y       --  The y location clicked.
+                    flags   --  Extra flags about the mouse.
+                    param   --  Extra params.
+            """
+
+            if event == cv2.EVENT_LBUTTONUP:
+                # Repaint the image!
+                self._draw_image()
+
+                # Compute the streamline and draw the points
+                for p in self._compute_streamline(x, y):
+                    self.image[p[1], p[0]] = 255
+
+                # Update the image.
+                cv2.imshow(self.windowTitle, self.image)
+
+        self._draw_image()
+
         # Show the image and wait for the exit key.
-        cv2.imshow("Harmonic Map Log-Scale Image", self.image)
-        #cv2.ResizeWindow("Harmonic Map Log-Scale Image", max(100, self.image.shape[0]), max(100, self.image.shape[1]))
+        cv2.imshow(self.windowTitle, self.image)
+        cv2.setMouseCallback(self.windowTitle, mouse_clicked)
+        #cv2.ResizeWindow(self.windowTitle, max(100, self.image.shape[0]), max(100, self.image.shape[1]))
 
         key = None
         while key != 27:

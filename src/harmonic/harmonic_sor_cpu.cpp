@@ -35,8 +35,8 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
 {
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
-            harmonic->locked == nullptr || harmonic->epsilon <= 0.0f ||
-            harmonic->omega < 1.0f || harmonic->omega >= 2.0f) {
+            harmonic->locked == nullptr || harmonic->epsilon <= 0.0 ||
+            harmonic->omega < 1.0 || harmonic->omega >= 2.0) {
         fprintf(stderr, "Error[harmonic_sor_2d_cpu]: %s\n", "Invalid data.");
         return INERTIA_ERROR_INVALID_DATA;
     }
@@ -49,9 +49,9 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
 
     harmonic->currentIteration = 0;
 
-    float delta = harmonic->epsilon + 1.0f;
+    double delta = harmonic->epsilon + 1.0;
     while (delta > harmonic->epsilon || harmonic->currentIteration < mMax) {
-        delta = 0.0f;
+        delta = 0.0;
 
         // Iterate over all non-boundary cells and update its value based on a red-black ordering.
         // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
@@ -66,19 +66,36 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
                     continue;
                 }
 
-                float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
+                double uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
 
-                // Update the value at this location.
-                harmonic->u[x0 * harmonic->m[1] + x1] += 0.25f * (harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
-                                                                  harmonic->u[(x0 + 1) * harmonic->m[1] + x1] +
-                                                                  harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] +
-                                                                  harmonic->u[x0 * harmonic->m[1] + (x1 + 1)] -
-                                                                  4.0f * harmonic->u[x0 * harmonic->m[1] + x1]);
+                // Compute the max u value (which is in log-space).
+                //float uMax = FLT_MIN;
+                //uMax = std::max(uMax, harmonic->u[(x0 - 1) * harmonic[1] + x1]);
+                //uMax = std::max(uMax, harmonic->u[(x0 + 1) * harmonic[1] + x1]);
+                //uMax = std::max(uMax, harmonic->u[x0 * harmonic[1] + (x1 - 1)]);
+                //uMax = std::max(uMax, harmonic->u[x0 * harmonic[1] + (x1 + 1)]);
+
+                // Update the value at this location with the log-sum-exp trick.
+                harmonic->u[x0 * harmonic->m[1] + x1] = (double)(1.0 - harmonic->omega) * (double)harmonic->u[x0 * harmonic->m[1] + x1] +
+                                                        (double)(harmonic->omega / 4.0) *
+                                                            (double)((double)harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
+                                                            (double)harmonic->u[(x0 + 1) * harmonic->m[1] + x1] +
+                                                            (double)harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] +
+                                                            (double)harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
 
                 // Compute the updated delta.
-                delta = std::max(delta, std::fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
+                double difference = (double)uPrevious - (double)harmonic->u[x0 * harmonic->m[1] + x1];
+                if (difference < 0.0) {
+                    difference = -difference;
+                }
+
+                if (delta < difference) {
+                    delta = difference;
+                }
             }
         }
+
+        printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
 
         harmonic->currentIteration++;
     }

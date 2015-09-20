@@ -34,23 +34,22 @@ import inertia_harmonic as ih
 class Harmonic(ih.InertiaHarmonic):
     """ A Harmonic object that can be used to easily solve harmonic functions. """
 
-
     def __init__(self):
         """ The constructor for the Harmonic class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
         self.n = int(0)
         self.m = ct.POINTER(ct.c_uint)()
-        self.u = ct.POINTER(ct.c_float)()
+        self.u = ct.POINTER(ct.c_double)()
         self.locked = ct.POINTER(ct.c_uint)()
         self.epsilon = float(0.01)
-        self.omega = float(1.5)
+        self.omega = float(1.0)
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
-        self.d_u = ct.POINTER(ct.c_float)()
+        self.d_u = ct.POINTER(ct.c_double)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
-    def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=float(0.01)):
+    def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=1e-2):
         """ Solve the Harmonic function.
 
             Parameters:
@@ -62,6 +61,8 @@ class Harmonic(ih.InertiaHarmonic):
             Returns:
                 A pair (wall-time, cpu-time) for the solver execution time, not including (un)initialization.
         """
+
+        self.epsilon = epsilon
 
         timing = (time.time(), time.clock())
 
@@ -84,7 +85,7 @@ class Harmonic(ih.InertiaHarmonic):
                 if self.n == 2:
                     result = ih._inertia.harmonic_sor_2d_cpu(self)
                     if result != 0:
-                        print("Failed to execute the 'harmonic' library's GPU SOR solver.")
+                        print("Failed to execute the 'harmonic' library's CPU SOR solver.")
                         process = 'cpu'
                 else:
                     print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
