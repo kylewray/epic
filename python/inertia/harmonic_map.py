@@ -66,15 +66,30 @@ class HarmonicMap(harm.Harmonic):
         self.m = array_type_n_uint(*np.array([self.image.shape[0], self.image.shape[1]]))
 
         # TODO: Do the log conversion here.
-        array_type_m_double = ct.c_double * (self.image.size)
-        self.u = array_type_m_double(*np.array([[1.0 - float(self.image[y, x] == 255) \
+        array_type_m_longdouble = ct.c_longdouble * (self.image.size)
+        self.u = array_type_m_longdouble(*np.array([[1.0 - float(self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
+        self._convert_u()
 
         array_type_m_uint = ct.c_uint * (self.image.size)
         self.locked = array_type_m_uint(*np.array([[int(self.image[y, x] == 0 or self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
+
+    def _convert_u(self):
+        """ Convert u to v. """
+
+        # Since this is supposed to get as close to 0 as possible, we have log(1-1e-13) ~= -4.3442952e-14
+        # which is within double machine precision.
+        epsilon = 1e-13
+
+        for y in range(self.m[0]):
+            for x in range(self.m[1]):
+                self.u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
+
+        print("DONE...")
+        sys.stdout.flush()
 
     def _compute_streamline(self, x, y):
         """ Compute a streamline (series of points) starting from this initial (x, y) location.
@@ -91,13 +106,13 @@ class HarmonicMap(harm.Harmonic):
 
         points = [(x, y)]
 
-        while self.u[y * self.m[1] + x] != 0.0 and self.u[y * self.m[1] + x] != 1.0 and len(points) < maxPoints:
-            uStar = 1.0
+        while self.locked[y * self.m[1] + x] != 1 and len(points) < maxPoints:
+            uStar = None
             coordStar = None
 
             for i in [-1, 0, 1]:
                 for j in [-1, 0, 1]:
-                    if self.u[(y + j) * self.m[1] + (x + i)] < uStar:
+                    if uStar is None or self.u[(y + j) * self.m[1] + (x + i)] > uStar:
                         uStar = self.u[(y + j) * self.m[1] + (x + i)]
                         coordStar = (x + i, y + j)
 

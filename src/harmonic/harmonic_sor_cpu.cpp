@@ -27,9 +27,68 @@
 #include "error_codes.h"
 #include "constants.h"
 
+#include <iostream>
 #include <stdio.h>
-#include <algorithm>
+#include <math.h>
+#include <cmath>
 
+/*
+int working_cpu_harmonic_sor_2d(const unsigned int *m, double *u, unsigned int *locked, int max_iterations, double EPSILON, double OMEGA) {
+  // Ensure that valid data was passed.
+  if (m == nullptr || u == nullptr || EPSILON <= 0.0f) {
+    fprintf(stderr, "Error[cpu_harmonic_sor_2d]: Invalid data.\n");
+    return 0;
+  }
+  unsigned int iterations = 0;
+  double delta = EPSILON + 1.0f;
+
+  while (delta > EPSILON) {
+    delta = 0.0f;
+    for (unsigned int i = 0; i < m[0]; i++) {
+      for (unsigned int j = 0; j < m[1]; j++) {
+        // If this is assigned a value, then skip it.
+        if (locked[i * m[1] + j]) {
+          continue;
+        }
+        // Compute the offsets, and ensure it does not go out of bounds.
+        unsigned int ip = std::min(m[0] - 1, i + 1);
+        unsigned int im = std::max(0, (int) i - 1);
+        unsigned int jp = std::min(m[1] - 1, j + 1);
+        unsigned int jm = std::max(0, (int) j - 1);
+
+        double old = u[i * m[1] + j];
+
+        // Note: By construction of the for-loop, im and jm are actually the next iteration.
+        u[i * m[1] + j] += OMEGA * 0.25f
+            * (u[ip * m[1] + j] + u[im * m[1] + j] + u[i * m[1] + jp] + u[i * m[1] + jm] - 4.0f * u[i * m[1] + j]);
+
+        // Compute delta, the difference between this iteration and the previous iteration.
+        delta = std::max(delta, (double) fabs(u[i * m[1] + j] - old));
+      }
+    }
+
+    iterations++;
+    //printf("iterations (%d) u %f \n", iterations , u[42* m[1] + 42] );
+
+    printf("Iteration %i --- %e\n", iterations, delta);
+
+    if (iterations == max_iterations) {
+      break;
+    }
+  }
+  if (iterations != 1) {
+    printf("iterations: %d, delta: %20.19f\n", iterations, delta);
+  }
+
+  return iterations;
+}
+
+int harmonic_sor_2d_cpu(Harmonic *harmonic)
+{
+    working_cpu_harmonic_sor_2d(harmonic->m, harmonic->u, harmonic->locked, 100000, harmonic->epsilon, harmonic->omega);
+return 0;
+}
+*/
 
 int harmonic_sor_2d_cpu(Harmonic *harmonic)
 {
@@ -49,9 +108,12 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
 
     harmonic->currentIteration = 0;
 
-    double delta = harmonic->epsilon + 1.0;
+    long double delta = harmonic->epsilon + 1.0;
     while (delta > harmonic->epsilon || harmonic->currentIteration < mMax) {
         delta = 0.0;
+
+        printf("Starting... ");
+        fflush(stdout);
 
         // Iterate over all non-boundary cells and update its value based on a red-black ordering.
         // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
@@ -66,39 +128,45 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
                     continue;
                 }
 
-                double uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
-
-                // Compute the max u value (which is in log-space).
-                //float uMax = FLT_MIN;
-                //uMax = std::max(uMax, harmonic->u[(x0 - 1) * harmonic[1] + x1]);
-                //uMax = std::max(uMax, harmonic->u[(x0 + 1) * harmonic[1] + x1]);
-                //uMax = std::max(uMax, harmonic->u[x0 * harmonic[1] + (x1 - 1)]);
-                //uMax = std::max(uMax, harmonic->u[x0 * harmonic[1] + (x1 + 1)]);
+                long double uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
 
                 // Update the value at this location with the log-sum-exp trick.
-                harmonic->u[x0 * harmonic->m[1] + x1] = (double)(1.0 - harmonic->omega) * (double)harmonic->u[x0 * harmonic->m[1] + x1] +
-                                                        (double)(harmonic->omega / 4.0) *
-                                                            (double)((double)harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
-                                                            (double)harmonic->u[(x0 + 1) * harmonic->m[1] + x1] +
-                                                            (double)harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] +
-                                                            (double)harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
+                /* Version #1
+                harmonic->u[x0 * harmonic->m[1] + x1] = (1.0 - harmonic->omega) *
+                                                            harmonic->u[x0 * harmonic->m[1] + x1] +
+                                                        (harmonic->omega / 4.0) *
+                                                            (harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
+                                                            harmonic->u[(x0 + 1) * harmonic->m[1] + x1] +
+                                                            harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] +
+                                                            harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
+                //*/
+
+                //* Version #2
+                long double maxVal = FLT_MIN;
+                maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] + x1], harmonic->u[(x0 + 1) * harmonic->m[1] + x1]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 - 1)]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
+
+                harmonic->u[x0 * harmonic->m[1] + x1] =  maxVal + std::log(
+                                                            std::exp(harmonic->u[(x0 - 1) * harmonic->m[1] + x1] - maxVal) +
+                                                            std::exp(harmonic->u[(x0 + 1) * harmonic->m[1] + x1] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 + 1)] - maxVal)) -
+                                                        std::log(2.0 * harmonic->n);
+                //*/
 
                 // Compute the updated delta.
-                double difference = (double)uPrevious - (double)harmonic->u[x0 * harmonic->m[1] + x1];
-                if (difference < 0.0) {
-                    difference = -difference;
-                }
-
-                if (delta < difference) {
-                    delta = difference;
-                }
+                delta = std::max(delta, (long double)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
             }
         }
 
-        printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
+        printf("Iteration %i --- %Le\n", harmonic->currentIteration, delta);
+        fflush(stdout);
 
         harmonic->currentIteration++;
     }
+
+    printf("eplsion = %Le\n", harmonic->epsilon);
 
     return INERTIA_SUCCESS;
 }

@@ -27,63 +27,9 @@
 #include "error_codes.h"
 #include "constants.h"
 
-#include <stdio.h>
-#include <algorithm>
-
 
 int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
 {
-    // Ensure data is valid before we begin.
-    if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
-            harmonic->locked == nullptr || harmonic->epsilon <= 0.0 ||
-            harmonic->omega < 1.0 || harmonic->omega >= 2.0) {
-        fprintf(stderr, "Error[harmonic_sor_2d_gpu]: %s\n", "Invalid data.");
-        return INERTIA_ERROR_INVALID_DATA;
-    }
-
-    // Make sure 'information' can at least be propagated throughout the entire grid.
-    unsigned int mMax = 0;
-    for (unsigned int i = 0; i < harmonic->n; i++) {
-        mMax = std::max(mMax, harmonic->m[i]);
-    }
-
-    harmonic->currentIteration = 0;
-
-    double delta = harmonic->epsilon + 1.0;
-    while (delta > harmonic->epsilon || harmonic->currentIteration < mMax) {
-        delta = 0.0;
-
-        // Iterate over all non-boundary cells and update its value based on a red-black ordering.
-        // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
-        for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
-            // Determine if this rows starts with a red (even row) or black (odd row) cell, and
-            // update the opposite depending on how many iterations there have been.
-            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
-
-            for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
-                // If this is locked, then skip it.
-                if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
-                    continue;
-                }
-
-                double uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
-
-                // Update the value at this location.
-                harmonic->u[x0 * harmonic->m[1] + x1] = (1.0 - harmonic->omega) * harmonic->u[x0 * harmonic->m[1] + x1] +
-                                                        (harmonic->omega / 4.0) *
-                                                            (harmonic->u[(x0 - 1) * harmonic->m[1] + x1] +
-                                                            harmonic->u[(x0 + 1) * harmonic->m[1] + x1] +
-                                                            harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] +
-                                                            harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
-
-                // Compute the updated delta.
-                delta = std::max(delta, std::fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
-            }
-        }
-
-        harmonic->currentIteration++;
-    }
-
     return INERTIA_SUCCESS;
 }
 

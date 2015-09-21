@@ -40,23 +40,23 @@ class Harmonic(ih.InertiaHarmonic):
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
         self.n = int(0)
         self.m = ct.POINTER(ct.c_uint)()
-        self.u = ct.POINTER(ct.c_double)()
+        self.u = ct.POINTER(ct.c_longdouble)()
         self.locked = ct.POINTER(ct.c_uint)()
-        self.epsilon = float(0.01)
-        self.omega = float(1.0)
+        self.epsilon = 1e-10
+        self.omega = 1.0
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
-        self.d_u = ct.POINTER(ct.c_double)()
+        self.d_u = ct.POINTER(ct.c_longdouble)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
-    def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=1e-2):
+    def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=1e-10):
         """ Solve the Harmonic function.
 
             Parameters:
                 algorithm   --  The algorithm to use, either 'jacobi' or 'sor'. Default is 'sor'.
                 process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                epsilon     --  The error from the true final value *in log space*. Default is 0.01.
+                epsilon     --  The error from the true final value *in log space*. Default is 1e-10.
 
             Returns:
                 A pair (wall-time, cpu-time) for the solver execution time, not including (un)initialization.
