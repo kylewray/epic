@@ -82,11 +82,18 @@ class HarmonicMap(harm.Harmonic):
 
         # Since this is supposed to get as close to 0 as possible, we have log(1-1e-13) ~= -4.3442952e-14
         # which is within double machine precision.
-        epsilon = 1e-13
+        #epsilon = 1e-130000
 
         for y in range(self.m[0]):
             for x in range(self.m[1]):
-                self.u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
+                # u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
+                if self.u[y * self.m[1] + x] == 1.0:
+                    # log(epsilon) = -1e13  =>  epsilon = e^-1e13 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    # For example, e^-1e1 = 0.00004539992, e^-1e2 = e^-1e2, etc.
+                    # Note: This is within precision of doubles, which has issues around +/- 1e15.
+                    self.u[y * self.m[1] + x] = -1e13
+                else:
+                    self.u[y * self.m[1] + x] = 0.0
 
         print("DONE...")
         sys.stdout.flush()
