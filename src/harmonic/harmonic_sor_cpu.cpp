@@ -120,9 +120,15 @@ int harmonic_sor_2d_cpu(Harmonic *harmonic)
         for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
             // Determine if this rows starts with a red (even row) or black (odd row) cell, and
             // update the opposite depending on how many iterations there have been.
+            bool redRow = (x0 % 2 == 0);
+            bool evenIteration = (harmonic->currentIteration % 2 == 0);
             unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
 
-            for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
+            //if ((evenIteration && !redRow) || (!evenIteration && redRow)) {
+            //    offset = 1;
+            //}
+
+            for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1++) { //x1 += 2) {
                 // If this is locked, then skip it.
                 if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
                     continue;

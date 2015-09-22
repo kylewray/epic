@@ -34,7 +34,8 @@ from inertia.harmonic_map import *
 #harmonicMapFile = os.path.join(thisFilePath, "images/simple_big.png")
 #harmonicMapFile = os.path.join(thisFilePath, "images/basic.png")
 #harmonicMapFile = os.path.join(thisFilePath, "images/maze_1.png")
-harmonicMapFile = os.path.join(thisFilePath, "images/maze_2.png")
+#harmonicMapFile = os.path.join(thisFilePath, "images/maze_2.png")
+harmonicMapFile = os.path.join(thisFilePath, "images/awesome.png")
 
 harmonicMap = HarmonicMap()
 harmonicMap.load(harmonicMapFile)
@@ -42,7 +43,7 @@ harmonicMap.load(harmonicMapFile)
 print(harmonicMap)
 harmonicMap.show()
 
-timing = harmonicMap.solve(epsilon=1.0) #1e-2)
+timing = harmonicMap.solve(epsilon=1e-2)
 
 print(harmonicMap)
 harmonicMap.show()

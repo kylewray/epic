@@ -26,6 +26,8 @@ import sys
 import ctypes as ct
 import numpy as np
 
+import math
+
 import cv2
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -41,8 +43,11 @@ class HarmonicMap(harm.Harmonic):
         super().__init__()
 
         self.windowTitle = "Harmonic Map"
+
         self.originalImage = None
         self.image = None
+
+        self.pxSize = 1.0
 
     def load(self, filename):
         """ Load a map from a 2d grayscale image.
@@ -88,15 +93,65 @@ class HarmonicMap(harm.Harmonic):
             for x in range(self.m[1]):
                 # u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
                 if self.u[y * self.m[1] + x] == 1.0:
-                    # log(epsilon) = -1e13  =>  epsilon = e^-1e13 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    # For example, e^-1e1 = 0.00004539992, e^-1e2 = e^-1e2, etc.
+                    # log(epsilon) = -1e10  =>  epsilon = e^-1e10 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    # For example, e^-1e1 = 0.00004539992, e^-1e2 = 3.720076e-44, etc.
                     # Note: This is within precision of doubles, which has issues around +/- 1e15.
-                    self.u[y * self.m[1] + x] = -1e13
+                    self.u[y * self.m[1] + x] = -1e15
                 else:
                     self.u[y * self.m[1] + x] = 0.0
 
-        print("DONE...")
-        sys.stdout.flush()
+    def _compute_potential(self, x, y):
+        """ Get the value of a true between pixel point (x, y) as linear combination of neighbor
+            pixel values.
+        
+            Parameters:
+                x   --  The x coordinate (between pixels).
+                y   --  The y coordinate (between pixels).
+
+            Returns:
+                The linear combination of the neighboring pixel values of (x, y).
+        """
+
+        xCellIndex, yCellIndex = self._compute_cell_index(x, y)
+
+        if self.locked[yCellIndex * self.m[1] + xCellIndex] == 1 and \
+                self.u[yCellIndex * self.m[1] + xCellIndex] < 0.0:
+            raise Exception()
+
+        xtl = int(x - 0.5 * self.pxSize)
+        ytl = int(y - 0.5 * self.pxSize)
+
+        xtr = int(x + 0.5 * self.pxSize)
+        ytr = int(y - 0.5 * self.pxSize)
+
+        xbl = int(x - 0.5 * self.pxSize)
+        ybl = int(y + 0.5 * self.pxSize)
+
+        xbr = int(x + 0.5 * self.pxSize)
+        ybr = int(y + 0.5 * self.pxSize)
+
+        alpha = (x - xtl) / self.pxSize
+        beta = (y - ytl) / self.pxSize
+
+        one = (1.0 - alpha) * self.u[ytl * self.m[1] + xtl] + alpha * self.u[ytr * self.m[1] + xtr]
+        two = (1.0 - alpha) * self.u[ybl * self.m[1] + xbl] + alpha * self.u[ybr * self.m[1] + xbr]
+        three = (1.0 - beta) * one + beta * two
+
+        return three
+
+    def _compute_cell_index(self, x, y):
+        """ Compute the offset to get the actual cell index from the subpixel coordinate.
+
+            Parameters:
+                x   --  The x coordinate (between pixels).
+                y   --  The y coordinate (between pixels).
+
+            Returns:
+                xCellIndex  --  The x cell index.
+                yCellIndex  --  The y cell index.
+        """
+
+        return int(x + 0.5 * self.pxSize), int(y + 0.5 * self.pxSize)
 
     def _compute_streamline(self, x, y):
         """ Compute a streamline (series of points) starting from this initial (x, y) location.
@@ -109,29 +164,36 @@ class HarmonicMap(harm.Harmonic):
                 The list of points from this starting location to a goal.
         """
 
-        maxPoints = self.image.size
-
         points = [(x, y)]
 
-        while self.locked[y * self.m[1] + x] != 1 and len(points) < maxPoints:
-            uStar = None
-            coordStar = None
+        xCellIndex, yCellIndex = self._compute_cell_index(x, y)
 
-            for i in [-1, 0, 1]:
-                for j in [-1, 0, 1]:
-                    if uStar is None or self.u[(y + j) * self.m[1] + (x + i)] > uStar:
-                        uStar = self.u[(y + j) * self.m[1] + (x + i)]
-                        coordStar = (x + i, y + j)
+        pathStepSize = 0.5
+        centralDifferenceStepSize = 0.5
 
-            if coordStar[0] == x and coordStar[1] == y:
-                break
+        maxPoints = self.image.size / pathStepSize
 
-            x = coordStar[0]
-            y = coordStar[1]
+        while self.locked[yCellIndex * self.m[1] + xCellIndex] != 1 and len(points) < maxPoints:
+            values = [self._compute_potential(x - centralDifferenceStepSize, y),
+                      self._compute_potential(x + centralDifferenceStepSize, y),
+                      self._compute_potential(x, y - centralDifferenceStepSize),
+                      self._compute_potential(x, y + centralDifferenceStepSize)]
 
-            points += [(coordStar[0], coordStar[1])]
+            partialx = (values[1] - values[0]) / (2.0 * centralDifferenceStepSize)
+            partialy = (values[3] - values[2]) / (2.0 * centralDifferenceStepSize)
 
-            print(coordStar, uStar)
+            denom = math.sqrt(pow(partialx, 2) + pow(partialy, 2))
+            partialx /= denom
+            partialy /= denom
+
+            x += partialx * pathStepSize
+            y += partialy * pathStepSize
+
+            xCellIndex, yCellIndex = self._compute_cell_index(x, y)
+
+            points += [(xCellIndex, yCellIndex)]
+
+            print((x, y), (xCellIndex, yCellIndex), self._compute_potential(x, y))
 
         return points
 
@@ -142,8 +204,13 @@ class HarmonicMap(harm.Harmonic):
 
         # Convert the 2d potential back into an image.
         self.image = self.originalImage.copy()
+
         #self.image = np.array([[int(np.log((self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon) / np.log(epsilon) * 255.0) \
         #self.image = np.array([[int((1.0 - self.u[y * self.m[1] + x]) * 255.0) \
+        #                            for x in range(self.m[1])] \
+        #                        for y in range(self.m[0])], dtype=np.uint8)
+
+        #self.image = np.array([[max(0.0, min(255, int(-self.u[y * self.m[1] + x]))) \
         #                            for x in range(self.m[1])] \
         #                        for y in range(self.m[0])], dtype=np.uint8)
 
