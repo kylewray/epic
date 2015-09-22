@@ -20,32 +20,5 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import os
-import sys
-
-thisFilePath = os.path.dirname(os.path.realpath(__file__))
-
-sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
-from inertia.harmonic import *
-from inertia.harmonic_map import *
-
-
-#harmonicMapFile = os.path.join(thisFilePath, "images/simple.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/simple_big.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/basic.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/maze_1.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/maze_2.png")
-harmonicMapFile = os.path.join(thisFilePath, "images/awesome.png")
-
-harmonicMap = HarmonicMap()
-harmonicMap.load(harmonicMapFile)
-
-print(harmonicMap)
-harmonicMap.show()
-
-timing = harmonicMap.solve(process='gpu', epsilon=1e-4)
-
-print(harmonicMap)
-harmonicMap.show()
-
+__all__ = ["inertia_harmonic", "harmonic", "harmonic_map"]
 

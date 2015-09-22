@@ -48,7 +48,7 @@ class Harmonic(ih.InertiaHarmonic):
         self.d_u = ct.POINTER(ct.c_float)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
-    def solve(self, algorithm='gauss-seidel', process='cpu', numThreads=1024, epsilon=1e-2):
+    def solve(self, algorithm='gauss-seidel', process='gpu', numThreads=1024, epsilon=1e-2):
         """ Solve the Harmonic function.
 
             Parameters:
@@ -66,18 +66,31 @@ class Harmonic(ih.InertiaHarmonic):
         timing = (time.time(), time.clock())
 
         if process == 'gpu':
+            result = ih._inertia.harmonic_initialize_dimension_size_gpu(self)
+            result += ih._inertia.harmonic_initialize_potential_values_gpu(self)
+            result += ih._inertia.harmonic_initialize_locked_gpu(self)
+            if result != 0:
+                print("Failed to initialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
+                process = 'cpu'
+
             if algorithm == 'gauss-seidel':
                 if self.n == 2:
                     result = ih._inertia.harmonic_2d_gpu(self, int(numThreads))
                     if result != 0:
-                        print("Failed to execute the 'harmonic' library's GPU Gauss-Seidel solver.")
+                        print("Failed to execute the 'inertia' library's GPU Gauss-Seidel solver.")
                         process = 'cpu'
                 else:
                     print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
                     raise Exception()
-
             else:
                 print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
+
+            result = ih._inertia.harmonic_uninitialize_dimension_size_gpu(self)
+            result += ih._inertia.harmonic_uninitialize_potential_values_gpu(self)
+            result += ih._inertia.harmonic_uninitialize_locked_gpu(self)
+            if result != 0:
+                # Note: Failing at uninitialization should not cause the CPU version to be executed.
+                print("Failed to uninitialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
 
         if process == 'cpu':
             if algorithm == 'gauss-seidel':
@@ -108,14 +121,13 @@ class Harmonic(ih.InertiaHarmonic):
         result += "m:        " + str([self.m[i] for i in range(self.n)]) + "\n"
         result += "epsilon:  " + str(self.epsilon) + "\n"
 
-        total = 1.0
+        numCells = 1
         for i in range(self.n):
-            total *= self.m[i]
-        total = int(total)
+            numCells *= int(self.m[i])
 
-        result += "u:\n" + str(np.array([self.u[i] for i in range(total)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
+        result += "u:\n" + str(np.array([self.u[i] for i in range(numCells)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
 
-        result += "locked:\n" + str(np.array([self.locked[i] for i in range(total)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
+        result += "locked:\n" + str(np.array([self.locked[i] for i in range(numCells)]).reshape([self.m[i] for i in range(self.n)])) + "\n\n"
 
         return result
 

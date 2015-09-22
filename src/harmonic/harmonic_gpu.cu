@@ -32,13 +32,93 @@
 #include <math.h>
 #include <cmath>
 
-
-/*
-__global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *locked)
+__global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
 {
     for (unsigned int x0 = blockIdx.x; x0 < m[0]; x0 += gridDim.x) {
-        for (unsigned int x1 = threadIdx.x; x1 < m[1]; x1 += blockDim.x) {
+        unsigned int offset = (unsigned int)((currentIteration % 2) != (x0 % 2));
+
+        for (unsigned int x1 = 2 * threadIdx.x + offset; x1 < m[1]; x1 += 2 * blockDim.x) {
+            // If this is locked, then wait for the other threads to finish in the warp, then continue.
+            if (locked[x0 * m[1] + x1]) {
+                __syncthreads();
+                continue;
+            }
+
+            // Update the value at this location with the log-sum-exp trick.
+            float maxVal = FLT_MIN;
+            maxVal = max(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
+            maxVal = max(maxVal, u[x0 * m[1] + (x1 - 1)]);
+            maxVal = max(maxVal, u[x0 * m[1] + (x1 + 1)]);
+
+            u[x0 * m[1] + x1] =  maxVal + __logf(__expf(u[(x0 - 1) * m[1] + x1] - maxVal) +
+                                                __expf(u[(x0 + 1) * m[1] + x1] - maxVal) +
+                                                __expf(u[x0 * m[1] + (x1 - 1)] - maxVal) +
+                                                __expf(u[x0 * m[1] + (x1 + 1)] - maxVal)) -
+                                            1.38629436f; //This is equivalent to ln(2.0 * n) for n = 2.
+
+            __syncthreads();
         }
+    }
+}
+
+/*__global__ void harmonic_2d_update_and_check_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
+{
+    // Since float and unsigned int are 4 bytes each, and we need each array to be the size of
+    // the number of threads, we will need to call this with: sizeof(float) * numThreads.
+    // Note: blockDim.x == numThreads
+    extern __shared__ float sdata[];
+    float *deltaLocalMax = (float *)sdata;
+
+    deltaLocalMax[threaIdx.x] = 0.0f;
+
+    __syncthreads();
+
+    for (unsigned int x0 = blockIdx.x; x0 < m[0]; x0 += gridDim.x) {
+        unsigned int offset = (unsigned int)((currentIteration % 2) != (x0 % 2));
+
+        for (unsigned int x1 = 2 * threadIdx.x + offset; x1 < m[1]; x1 += 2 * blockDim.x) {
+            // If this is locked, then wait for the other threads to finish in the warp, then continue.
+            if (locked[x0 * m[1] + x1]) {
+                __syncthreads();
+                continue;
+            }
+
+            float uPrevious = u[x0 * m[1] + x1];
+
+            // Update the value at this location with the log-sum-exp trick.
+            float maxVal = FLT_MIN;
+            maxVal = max(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
+            maxVal = max(maxVal, u[x0 * m[1] + (x1 - 1)]);
+            maxVal = max(maxVal, u[x0 * m[1] + (x1 + 1)]);
+
+            u[x0 * m[1] + x1] =  maxVal + __logf(__expf(u[(x0 - 1) * m[1] + x1] - maxVal) +
+                                                __expf(u[(x0 + 1) * m[1] + x1] - maxVal) +
+                                                __expf(u[x0 * m[1] + (x1 - 1)] - maxVal) +
+                                                __expf(u[x0 * m[1] + (x1 + 1)] - maxVal)) -
+                                            1.38629436f; //This is equivalent to ln(2.0 * n) for n = 2.
+
+            // Compute the updated delta.
+            deltaLocalMax[threadIdx.x] = max(deltaLocalMax[threadIdx.x], fabs(uPrevious - u[x0 * m[1] + x1]));
+
+            __syncthreads();
+        }
+    }
+
+    // At the end, perform a reduction to efficiently compute the maximal delta for this thread block.
+    for (unsigned int index = blockDim.x / 2; index > 0; index >>= 1) {
+        if (threadIdx.x < index && threadIdx.x < m[1] && threadIdx.x + index < m[1]) {
+            if (deltaLocalMax[threadIdx.x] < deltaLocalMax[threadIdx.x + index]) {
+                deltaLocalMax[threadIdx.x] = deltaLocalMax[threadIdx.x + index];
+            }
+        }
+
+        __syncthreads();
+    }
+
+    // Store the maximal delta in the array for delta values. We will use another kernel to quickly
+    // do a reduction over this to find the max delta.
+    if (threadIdx.x == 0) {
+        deltaMax[blockIdx.x] = deltaLocalMax[0];
     }
 }
 */
@@ -47,9 +127,17 @@ int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
 {
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
-            harmonic->locked == nullptr || harmonic->epsilon <= 0.0) {
-        fprintf(stderr, "Error[harmonic_2d_cpu]: %s\n", "Invalid data.");
+            harmonic->locked == nullptr || harmonic->epsilon <= 0.0 ||
+            harmonic->d_m == nullptr || harmonic->d_u == nullptr ||
+            harmonic->d_locked == nullptr) {
+        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n", "Invalid data.");
         return INERTIA_ERROR_INVALID_DATA;
+    }
+
+    if (numThreads % 32 != 0) {
+        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n",
+                    "Must specficy a number of threads divisible by 32 (the number of threads in a warp).");
+        return INERTIA_ERROR_INVALID_CUDA_PARAM;
     }
 
     // Make sure 'information' can at least be propagated throughout the entire grid.
@@ -57,54 +145,42 @@ int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
     for (unsigned int i = 0; i < harmonic->n; i++) {
         mMax = std::max(mMax, harmonic->m[i]);
     }
+    mMax = 5000; // *** DEBUG ***
 
     harmonic->currentIteration = 0;
 
-    float delta = harmonic->epsilon + 1.0;
-    while (delta > harmonic->epsilon || harmonic->currentIteration < mMax) {
-        delta = 0.0;
 
-        // Iterate over all non-boundary cells and update its value based on a red-black ordering.
-        // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
-        for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
-            // Determine if this rows starts with a red (even row) or black (odd row) cell, and
-            // update the opposite depending on how many iterations there have been.
-            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
+    // Determine how many blocks are required.
+    unsigned int numBlocks = harmonic->m[0];
 
-            for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
-                // If this is locked, then skip it.
-                if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
-                    continue;
-                }
+    // Keep going until a threshold is reached.
+    while (/*delta > harmonic->epsilon ||*/ harmonic->currentIteration < mMax) {
+        //delta = 0.0;
 
-                float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
-
-                // Update the value at this location with the log-sum-exp trick.
-                float maxVal = FLT_MIN;
-                maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] + x1], harmonic->u[(x0 + 1) * harmonic->m[1] + x1]);
-                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 - 1)]);
-                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
-
-                harmonic->u[x0 * harmonic->m[1] + x1] =  maxVal + std::log(
-                                                            std::exp(harmonic->u[(x0 - 1) * harmonic->m[1] + x1] - maxVal) +
-                                                            std::exp(harmonic->u[(x0 + 1) * harmonic->m[1] + x1] - maxVal) +
-                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] - maxVal) +
-                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 + 1)] - maxVal)) -
-                                                        std::log(2.0 * harmonic->n);
-
-                // Compute the updated delta.
-                delta = std::max(delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
-            }
-        }
+        harmonic_2d_update_gpu<<< numBlocks, numThreads >>>(harmonic->d_m, harmonic->d_u, harmonic->d_locked, harmonic->currentIteration);
 
         // *** DEBUG ***
         if (harmonic->currentIteration % 100 == 0) {
-            printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
+            //printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
+            printf("Iteration %i\n", harmonic->currentIteration);
             fflush(stdout);
         }
         // *************
 
         harmonic->currentIteration++;
+    }
+
+    // Compute the number of cells.
+    unsigned int numCells = 1;
+    for (unsigned int i = 0; i < harmonic->n; i++) {
+        numCells *= harmonic->m[i];
+    }
+
+    // Copy the final (or intermediate) result from device to host.
+    if (cudaMemcpy(harmonic->u, harmonic->d_u, numCells * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n",
+                "Failed to copy memory from device to host for the potential values.");
+        return INERTIA_ERROR_MEMCPY_TO_HOST;
     }
 
     return INERTIA_SUCCESS;

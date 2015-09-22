@@ -48,14 +48,14 @@ extern "C" int harmonic_uninitialize_dimension_size_gpu(Harmonic *harmonic);
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_initialize_potential_value_gpu(Harmonic *harmonic);
+extern "C" int harmonic_initialize_potential_values_gpu(Harmonic *harmonic);
 
 /**
  *  Uninitialize CUDA by transferring potential value information to the device.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_uninitialize_potential_value_gpu(Harmonic *harmonic);
+extern "C" int harmonic_uninitialize_potential_values_gpu(Harmonic *harmonic);
 
 /**
  *  Initialize CUDA by transferring locked information to the device.

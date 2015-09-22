@@ -54,8 +54,21 @@ class InertiaHarmonic(ct.Structure):
                 ]
 
 
+# Functions from 'harmonic_cpu.h'.
 _inertia.harmonic_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
-#_inertia.harmonic_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
-#                                            ct.c_uint)     # numThreads
+# Functions from 'harmonic_gpu.h'.
+_inertia.harmonic_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
+                                            ct.c_uint)     # numThreads
+
+
+# Functions from 'harmonic_model_gpu.h'.
+_inertia.harmonic_initialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_uninitialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+
+_inertia.harmonic_initialize_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_uninitialize_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+
+_inertia.harmonic_initialize_locked_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_uninitialize_locked_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
