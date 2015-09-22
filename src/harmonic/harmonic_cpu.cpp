@@ -23,23 +23,22 @@
 
 
 #include "harmonic.h"
-#include "harmonic_sor_gpu.h"
+#include "harmonic_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 
+#include <iostream>
+#include <stdio.h>
+#include <math.h>
+#include <cmath>
 
-void harmonic_sor_2d_update_gpu(unsigned int *m, float *u)
-{
 
-}
-
-int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
+int harmonic_2d_cpu(Harmonic *harmonic)
 {
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
-            harmonic->locked == nullptr || harmonic->epsilon <= 0.0 ||
-            harmonic->omega < 1.0 || harmonic->omega >= 2.0) {
-        fprintf(stderr, "Error[harmonic_sor_2d_cpu]: %s\n", "Invalid data.");
+            harmonic->locked == nullptr || harmonic->epsilon <= 0.0) {
+        fprintf(stderr, "Error[harmonic_2d_cpu]: %s\n", "Invalid data.");
         return INERTIA_ERROR_INVALID_DATA;
     }
 
@@ -60,13 +59,7 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
         for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
             // Determine if this rows starts with a red (even row) or black (odd row) cell, and
             // update the opposite depending on how many iterations there have been.
-            bool redRow = (x0 % 2 == 0);
-            bool evenIteration = (harmonic->currentIteration % 2 == 0);
-            unsigned int offset = 0; //(unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
-
-            if ((evenIteration && !redRow) || (!evenIteration && redRow)) {
-                offset = 1;
-            }
+            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
 
             for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
                 // If this is locked, then skip it.
@@ -107,9 +100,8 @@ int harmonic_sor_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
     return INERTIA_SUCCESS;
 }
 
-//int harmonic_sor_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
+//int harmonic_3d_cpu(Harmonic *harmonic);
 
-//int harmonic_sor_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
-
+//int harmonic_4d_cpu(Harmonic *harmonic);
 
 

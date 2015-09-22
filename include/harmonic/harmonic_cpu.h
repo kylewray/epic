@@ -22,43 +22,43 @@
  */
 
 
-#ifndef HARMONIC_SOR_CPU_H
-#define HARMONIC_SOR_CPU_H
+#ifndef HARMONIC_CPU_H
+#define HARMONIC_CPU_H
 
 
 /**
  *  Compute the fixed point of the 2-dimensional harmonic function provided following
- *  the Successive-Over-Relaxation (SOR) method. The harmonic function u must be defined
+ *  the Gauss-Seidel method. The harmonic function u must be defined
  *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_sor_2d_cpu(Harmonic *harmonic);
+extern "C" int harmonic_2d_cpu(Harmonic *harmonic);
 
 /**
  *  Compute the fixed point of the 3-dimensional harmonic function provided following
- *  the Successive-Over-Relaxation (SOR) method. The harmonic function u must be defined
+ *  the Gauss-Seidel method. The harmonic function u must be defined
  *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_sor_3d_cpu(Harmonic *harmonic);
+//extern "C" int harmonic_3d_cpu(Harmonic *harmonic);
 
 /**
  *  Compute the fixed point of the 4-dimensional harmonic function provided following
- *  the Successive-Over-Relaxation (SOR) method. The harmonic function u must be defined
+ *  the Gauss-Seidel method. The harmonic function u must be defined
  *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
  *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_sor_4d_cpu(Harmonic *harmonic);
+//extern "C" int harmonic_4d_cpu(Harmonic *harmonic);
 
 
-#endif // HARMONIC_SOR_CPU_H
+#endif // HARMONIC_CPU_H
 

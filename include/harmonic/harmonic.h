@@ -34,7 +34,6 @@
  *  @param  locked      The locked cells in the grid; assumes boarder values
  *                      are locked.
  *  @param  epsilon     The convergence criterion value.
- *  @param  omega       A value in the range [1, 2] for SOR methods.
  *  @param  d_m         Device-side pointer of m.
  *  @param  d_u         Device-side pointer of u.
  *  @param  d_locked    Device-side pointer of locked.
@@ -48,7 +47,6 @@ typedef struct Harmonic {
     unsigned int *locked;
 
     float epsilon;
-    float omega;
 
     // Computation Variables (Utilized by Processes Only).
     unsigned int currentIteration;

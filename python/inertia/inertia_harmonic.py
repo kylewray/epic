@@ -47,7 +47,6 @@ class InertiaHarmonic(ct.Structure):
                 ("u", ct.POINTER(ct.c_float)),
                 ("locked", ct.POINTER(ct.c_uint)),
                 ("epsilon", ct.c_float),
-                ("omega", ct.c_float),
                 ("currentIteration", ct.c_uint),
                 ("d_m", ct.POINTER(ct.c_uint)),
                 ("d_u", ct.POINTER(ct.c_float)),
@@ -55,8 +54,8 @@ class InertiaHarmonic(ct.Structure):
                 ]
 
 
-_inertia.harmonic_sor_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
-#_inertia.harmonic_sor_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
+#_inertia.harmonic_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
 #                                            ct.c_uint)     # numThreads
 

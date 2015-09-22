@@ -22,46 +22,46 @@
  */
 
 
-#ifndef HARMONIC_JACOBI_GPU_H
-#define HARMONIC_JACOBI_GPU_H
+#ifndef HARMONIC_GPU_H
+#define HARMONIC_GPU_H
 
 
 /**
  *  Compute the fixed point of the 2-dimensional harmonic function provided following
- *  the Jacobi method. The harmonic function u must be defined such that boundaries
- *  or "goal states" (i.e., any fixed value) have the sign bit flipped. All other
- *  values will be modified in-place. The process terminates when the maximal
- *  change between any state is less than epsilon.
- *  @param  harmonic    The Harmonic object.
- *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
- *  @return Returns zero upon success, non-zero otherwise.
- */
-//extern "C" int harmonic_jacobi_2d_gpu(Harmonic *harmonic, unsigned int numThreads);
-
-/**
- *  Compute the fixed point of the 3-dimensional harmonic function provided following
- *  the Jacobi method. The harmonic function u must be defined such that boundaries
- *  or "goal states" (i.e., any fixed value) have the sign bit flipped. All other
- *  values will be modified in-place. The process terminates when the maximal
+ *  the Gauss-Seidel method. The harmonic function u must be defined
+ *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
+ *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
  *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_jacobi_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
+extern "C" int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 /**
  *  Compute the fixed point of the 3-dimensional harmonic function provided following
- *  the Jacobi method. The harmonic function u must be defined such that boundaries
- *  or "goal states" (i.e., any fixed value) have the sign bit flipped. All other
- *  values will be modified in-place. The process terminates when the maximal
+ *  the Gauss-Seidel method. The harmonic function u must be defined
+ *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
+ *  flipped. All other values will be modified in-place. The process terminates when the
  *  maximal change between any state is less than epsilon.
  *  @param  harmonic    The Harmonic object.
  *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_jacobi_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
+//extern "C" int harmonic_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
+
+/**
+ *  Compute the fixed point of the 4-dimensional harmonic function provided following
+ *  the Gauss-Seidel method. The harmonic function u must be defined
+ *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
+ *  flipped. All other values will be modified in-place. The process terminates when the
+ *  maximal change between any state is less than epsilon.
+ *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+//extern "C" int harmonic_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 
-#endif // HARMONIC_JACOBI_GPU_H
+#endif // HARMONIC_GPU_H
 

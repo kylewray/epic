@@ -43,17 +43,16 @@ class Harmonic(ih.InertiaHarmonic):
         self.u = ct.POINTER(ct.c_float)()
         self.locked = ct.POINTER(ct.c_uint)()
         self.epsilon = 1e-2
-        self.omega = 1.0
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
         self.d_u = ct.POINTER(ct.c_float)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
-    def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=1e-2):
+    def solve(self, algorithm='gauss-seidel', process='cpu', numThreads=1024, epsilon=1e-2):
         """ Solve the Harmonic function.
 
             Parameters:
-                algorithm   --  The algorithm to use, either 'jacobi' or 'sor'. Default is 'sor'.
+                algorithm   --  The algorithm to use. Default is 'gauss-seidel'.
                 process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
                 epsilon     --  The error from the true final value *in log space*. Default is 1e-2.
@@ -67,11 +66,11 @@ class Harmonic(ih.InertiaHarmonic):
         timing = (time.time(), time.clock())
 
         if process == 'gpu':
-            if algorithm == 'sor':
+            if algorithm == 'gauss-seidel':
                 if self.n == 2:
-                    result = ih._inertia.harmonic_sor_2d_gpu(self, int(numThreads))
+                    result = ih._inertia.harmonic_2d_gpu(self, int(numThreads))
                     if result != 0:
-                        print("Failed to execute the 'harmonic' library's GPU SOR solver.")
+                        print("Failed to execute the 'harmonic' library's GPU Gauss-Seidel solver.")
                         process = 'cpu'
                 else:
                     print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
@@ -81,11 +80,11 @@ class Harmonic(ih.InertiaHarmonic):
                 print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
 
         if process == 'cpu':
-            if algorithm == 'sor':
+            if algorithm == 'gauss-seidel':
                 if self.n == 2:
-                    result = ih._inertia.harmonic_sor_2d_cpu(self)
+                    result = ih._inertia.harmonic_2d_cpu(self)
                     if result != 0:
-                        print("Failed to execute the 'harmonic' library's CPU SOR solver.")
+                        print("Failed to execute the 'harmonic' library's CPU Gauss-Seidel solver.")
                         process = 'cpu'
                 else:
                     print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
@@ -108,7 +107,6 @@ class Harmonic(ih.InertiaHarmonic):
         result = "n:        " + str(self.n) + "\n"
         result += "m:        " + str([self.m[i] for i in range(self.n)]) + "\n"
         result += "epsilon:  " + str(self.epsilon) + "\n"
-        result += "omega:    " + str(self.omega) + "\n\n"
 
         total = 1.0
         for i in range(self.n):
