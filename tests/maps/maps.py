@@ -43,7 +43,7 @@ harmonicMap.load(harmonicMapFile)
 print(harmonicMap)
 harmonicMap.show()
 
-timing = harmonicMap.solve(epsilon=1e-2)
+timing = harmonicMap.solve(epsilon=1e-4)
 
 print(harmonicMap)
 harmonicMap.show()

@@ -70,19 +70,18 @@ class HarmonicMap(harm.Harmonic):
         array_type_n_uint = ct.c_uint * (self.n)
         self.m = array_type_n_uint(*np.array([self.image.shape[0], self.image.shape[1]]))
 
-        # TODO: Do the log conversion here.
-        array_type_m_longdouble = ct.c_longdouble * (self.image.size)
-        self.u = array_type_m_longdouble(*np.array([[1.0 - float(self.image[y, x] == 255) \
+        array_type_m_float = ct.c_float * (self.image.size)
+        self.u = array_type_m_float(*np.array([[1.0 - float(self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
-        self._convert_u()
+        self._convert_log_scale()
 
         array_type_m_uint = ct.c_uint * (self.image.size)
         self.locked = array_type_m_uint(*np.array([[int(self.image[y, x] == 0 or self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
 
-    def _convert_u(self):
+    def _convert_log_scale(self):
         """ Convert u to v. """
 
         # Since this is supposed to get as close to 0 as possible, we have log(1-1e-13) ~= -4.3442952e-14

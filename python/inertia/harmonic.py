@@ -40,13 +40,13 @@ class Harmonic(ih.InertiaHarmonic):
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
         self.n = int(0)
         self.m = ct.POINTER(ct.c_uint)()
-        self.u = ct.POINTER(ct.c_longdouble)()
+        self.u = ct.POINTER(ct.c_float)()
         self.locked = ct.POINTER(ct.c_uint)()
         self.epsilon = 1e-2
         self.omega = 1.0
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
-        self.d_u = ct.POINTER(ct.c_longdouble)()
+        self.d_u = ct.POINTER(ct.c_float)()
         self.d_locked = ct.POINTER(ct.c_uint)()
 
     def solve(self, algorithm='sor', process='cpu', numThreads=1024, epsilon=1e-2):

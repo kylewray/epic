@@ -44,13 +44,13 @@ class InertiaHarmonic(ct.Structure):
 
     _fields_ = [("n", ct.c_uint),
                 ("m", ct.POINTER(ct.c_uint)),
-                ("u", ct.POINTER(ct.c_longdouble)),
+                ("u", ct.POINTER(ct.c_float)),
                 ("locked", ct.POINTER(ct.c_uint)),
-                ("epsilon", ct.c_longdouble),
-                ("omega", ct.c_longdouble),
+                ("epsilon", ct.c_float),
+                ("omega", ct.c_float),
                 ("currentIteration", ct.c_uint),
                 ("d_m", ct.POINTER(ct.c_uint)),
-                ("d_u", ct.POINTER(ct.c_longdouble)),
+                ("d_u", ct.POINTER(ct.c_float)),
                 ("d_locked", ct.POINTER(ct.c_uint)),
                 ]
 

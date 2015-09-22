@@ -44,17 +44,17 @@ typedef struct Harmonic {
     unsigned int n;
     unsigned int *m;
 
-    long double *u;
+    float *u;
     unsigned int *locked;
 
-    long double epsilon;
-    long double omega;
+    float epsilon;
+    float omega;
 
     // Computation Variables (Utilized by Processes Only).
     unsigned int currentIteration;
 
     unsigned int *d_m;
-    long double *d_u;
+    float *d_u;
     unsigned int *d_locked;
 } Harmonic;
 
