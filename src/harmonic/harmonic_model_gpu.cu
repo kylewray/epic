@@ -55,6 +55,7 @@ int harmonic_initialize_dimension_size_gpu(Harmonic *harmonic)
     return INERTIA_SUCCESS;
 }
 
+
 int harmonic_uninitialize_dimension_size_gpu(Harmonic *harmonic)
 {
     if (harmonic->d_m != nullptr) {
@@ -68,6 +69,7 @@ int harmonic_uninitialize_dimension_size_gpu(Harmonic *harmonic)
 
     return INERTIA_SUCCESS;
 }
+
 
 int harmonic_initialize_potential_values_gpu(Harmonic *harmonic)
 {
@@ -101,6 +103,7 @@ int harmonic_initialize_potential_values_gpu(Harmonic *harmonic)
     return INERTIA_SUCCESS;
 }
 
+
 int harmonic_uninitialize_potential_values_gpu(Harmonic *harmonic)
 {
     if (harmonic->d_u != nullptr) {
@@ -114,6 +117,7 @@ int harmonic_uninitialize_potential_values_gpu(Harmonic *harmonic)
 
     return INERTIA_SUCCESS;
 }
+
 
 int harmonic_initialize_locked_gpu(Harmonic *harmonic)
 {
@@ -146,6 +150,7 @@ int harmonic_initialize_locked_gpu(Harmonic *harmonic)
 
     return INERTIA_SUCCESS;
 }
+
 
 int harmonic_uninitialize_locked_gpu(Harmonic *harmonic)
 {

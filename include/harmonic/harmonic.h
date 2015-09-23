@@ -31,12 +31,13 @@
  *  @param  n           The number of dimensions.
  *  @param  m           The size of each dimension.
  *  @param  u           The log values; assumes boarder values are locked.
- *  @param  locked      The locked cells in the grid; assumes boarder values
- *                      are locked.
+ *  @param  locked      The locked cells in the grid; assumes boarder
+ *                      values are locked.
  *  @param  epsilon     The convergence criterion value.
  *  @param  d_m         Device-side pointer of m.
  *  @param  d_u         Device-side pointer of u.
  *  @param  d_locked    Device-side pointer of locked.
+ *  @param  d_delta     The delta values (size of numBlocks).
  */
 typedef struct Harmonic {
     // Core Variables (User-Defined).
@@ -47,6 +48,8 @@ typedef struct Harmonic {
     unsigned int *locked;
 
     float epsilon;
+    float delta;
+    unsigned int numIterationsToStaggerCheck;
 
     // Computation Variables (Utilized by Processes Only).
     unsigned int currentIteration;
@@ -54,6 +57,8 @@ typedef struct Harmonic {
     unsigned int *d_m;
     float *d_u;
     unsigned int *d_locked;
+
+    float *d_delta;
 } Harmonic;
 
 

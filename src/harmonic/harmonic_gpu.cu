@@ -24,6 +24,7 @@
 
 #include "harmonic.h"
 #include "harmonic_gpu.h"
+#include "harmonic_model_gpu.h"
 #include "error_codes.h"
 #include "constants.h"
 
@@ -32,7 +33,8 @@
 #include <math.h>
 #include <cmath>
 
-__global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
+
+__global__ void harmonic_update_2d_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
 {
     for (unsigned int x0 = blockIdx.x; x0 < m[0]; x0 += gridDim.x) {
         unsigned int offset = (unsigned int)((currentIteration % 2) != (x0 % 2));
@@ -46,9 +48,9 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
 
             // Update the value at this location with the log-sum-exp trick.
             float maxVal = FLT_MIN;
-            maxVal = max(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
-            maxVal = max(maxVal, u[x0 * m[1] + (x1 - 1)]);
-            maxVal = max(maxVal, u[x0 * m[1] + (x1 + 1)]);
+            maxVal = fmaxf(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
+            maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 - 1)]);
+            maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 + 1)]);
 
             u[x0 * m[1] + x1] =  maxVal + __logf(__expf(u[(x0 - 1) * m[1] + x1] - maxVal) +
                                                 __expf(u[(x0 + 1) * m[1] + x1] - maxVal) +
@@ -61,7 +63,9 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
     }
 }
 
-/*__global__ void harmonic_2d_update_and_check_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
+
+__global__ void harmonic_update_and_check_2d_gpu(unsigned int *m, float *u, unsigned int *locked,
+                                            unsigned int currentIteration, float *delta)
 {
     // Since float and unsigned int are 4 bytes each, and we need each array to be the size of
     // the number of threads, we will need to call this with: sizeof(float) * numThreads.
@@ -69,7 +73,7 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
     extern __shared__ float sdata[];
     float *deltaLocalMax = (float *)sdata;
 
-    deltaLocalMax[threaIdx.x] = 0.0f;
+    deltaLocalMax[threadIdx.x] = 0.0f;
 
     __syncthreads();
 
@@ -87,9 +91,9 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
 
             // Update the value at this location with the log-sum-exp trick.
             float maxVal = FLT_MIN;
-            maxVal = max(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
-            maxVal = max(maxVal, u[x0 * m[1] + (x1 - 1)]);
-            maxVal = max(maxVal, u[x0 * m[1] + (x1 + 1)]);
+            maxVal = fmaxf(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
+            maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 - 1)]);
+            maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 + 1)]);
 
             u[x0 * m[1] + x1] =  maxVal + __logf(__expf(u[(x0 - 1) * m[1] + x1] - maxVal) +
                                                 __expf(u[(x0 + 1) * m[1] + x1] - maxVal) +
@@ -98,7 +102,7 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
                                             1.38629436f; //This is equivalent to ln(2.0 * n) for n = 2.
 
             // Compute the updated delta.
-            deltaLocalMax[threadIdx.x] = max(deltaLocalMax[threadIdx.x], fabs(uPrevious - u[x0 * m[1] + x1]));
+            deltaLocalMax[threadIdx.x] = fmaxf(deltaLocalMax[threadIdx.x], fabs(uPrevious - u[x0 * m[1] + x1]));
 
             __syncthreads();
         }
@@ -106,7 +110,7 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
 
     // At the end, perform a reduction to efficiently compute the maximal delta for this thread block.
     for (unsigned int index = blockDim.x / 2; index > 0; index >>= 1) {
-        if (threadIdx.x < index && threadIdx.x < m[1] && threadIdx.x + index < m[1]) {
+        if (threadIdx.x < index) {
             if (deltaLocalMax[threadIdx.x] < deltaLocalMax[threadIdx.x + index]) {
                 deltaLocalMax[threadIdx.x] = deltaLocalMax[threadIdx.x + index];
             }
@@ -118,26 +122,132 @@ __global__ void harmonic_2d_update_gpu(unsigned int *m, float *u, unsigned int *
     // Store the maximal delta in the array for delta values. We will use another kernel to quickly
     // do a reduction over this to find the max delta.
     if (threadIdx.x == 0) {
-        deltaMax[blockIdx.x] = deltaLocalMax[0];
+        delta[blockIdx.x] = deltaLocalMax[0];
     }
 }
-*/
 
-int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
+
+__global__ void harmonic_compute_max_delta_gpu(unsigned int numBlocks, float *delta)
 {
+    // Stride this thread to compute its individual max.
+    for (unsigned int i = threadIdx.x; i < numBlocks; i += blockDim.x) {
+        delta[threadIdx.x] = fmaxf(delta[threadIdx.x], delta[i]);
+    }
+
+    __syncthreads();
+
+    // Do a final reduction on these values to efficiently compute the true maximal delta.
+    // Note: Afterwards, delta[0] will hold the max delta over all cells.
+    for (unsigned int index = blockDim.x / 2; index > 0; index >>= 1) {
+        if (threadIdx.x < index && threadIdx.x < numBlocks && threadIdx.x + index < numBlocks) {
+            //delta[threadIdx.x] = fmaxf(delta[threadIdx.x], delta[threadIdx.x + index]);
+            if (delta[threadIdx.x] < delta[threadIdx.x + index]) {
+                delta[threadIdx.x] = delta[threadIdx.x + index];
+            }
+        }
+
+        __syncthreads();
+    }
+}
+
+
+unsigned int harmonic_compute_num_blocks_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    if (harmonic->n == 2) {
+        return harmonic->m[0];
+    } else if (harmonic->n == 3) {
+    } else if (harmonic->n == 4) {
+    }
+
+    return 0;
+}
+
+
+int harmonic_complete_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    int result;
+
+    result = harmonic_initialize_dimension_size_gpu(harmonic);
+    if (result != INERTIA_SUCCESS) {
+        return result;
+    }
+    result = harmonic_initialize_potential_values_gpu(harmonic);
+    if (result != INERTIA_SUCCESS) {
+        return result;
+    }
+    result = harmonic_initialize_locked_gpu(harmonic);
+    if (result != INERTIA_SUCCESS) {
+        return result;
+    }
+
+    result = harmonic_execute_gpu(harmonic, numThreads);
+    if (result != INERTIA_SUCCESS) {
+        return result;
+    }
+
+    result = INERTIA_SUCCESS;
+    if (harmonic_uninitialize_dimension_size_gpu(harmonic) != INERTIA_SUCCESS) {
+        result = INERTIA_ERROR_DEVICE_FREE;
+    }
+    if (harmonic_uninitialize_potential_values_gpu(harmonic) != INERTIA_SUCCESS) {
+        result = INERTIA_ERROR_DEVICE_FREE;
+    }
+    if (harmonic_uninitialize_locked_gpu(harmonic) != INERTIA_SUCCESS) {
+        result = INERTIA_ERROR_DEVICE_FREE;
+    }
+
+    return result;
+}
+
+
+int harmonic_initialize_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    // Reset the current iteration.
+    harmonic->currentIteration = 0;
+
+    // Ensure the data is valid.
+    if (harmonic->n == 0 || harmonic->m == nullptr || harmonic->d_delta != nullptr) {
+        fprintf(stderr, "Error[harmonic_initialize_gpu]: %s\n", "Invalid input.");
+        return INERTIA_ERROR_INVALID_DATA;
+    }
+
+    unsigned int numBlocks = harmonic_compute_num_blocks_gpu(harmonic, numThreads);
+
+    // Allocate the memory on the device.
+    if (cudaMalloc(&harmonic->d_delta, numBlocks * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_initialize_gpu]: %s\n",
+                "Failed to allocate device-side memory for delta.");
+        return INERTIA_ERROR_DEVICE_MALLOC;
+    }
+
+    return INERTIA_SUCCESS;
+}
+
+
+int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    // The result from calling other functions.
+    int result;
+
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
             harmonic->locked == nullptr || harmonic->epsilon <= 0.0 ||
             harmonic->d_m == nullptr || harmonic->d_u == nullptr ||
             harmonic->d_locked == nullptr) {
-        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n", "Invalid data.");
+        fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Invalid data.");
         return INERTIA_ERROR_INVALID_DATA;
     }
 
     if (numThreads % 32 != 0) {
-        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n",
+        fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
                     "Must specficy a number of threads divisible by 32 (the number of threads in a warp).");
         return INERTIA_ERROR_INVALID_CUDA_PARAM;
+    }
+
+    result = harmonic_initialize_gpu(harmonic, numThreads);
+    if (result != INERTIA_SUCCESS) {
+        fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to initialize GPU variables.");
+        return result;
     }
 
     // Make sure 'information' can at least be propagated throughout the entire grid.
@@ -145,31 +255,162 @@ int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
     for (unsigned int i = 0; i < harmonic->n; i++) {
         mMax = std::max(mMax, harmonic->m[i]);
     }
-    mMax = 5000; // *** DEBUG ***
 
-    harmonic->currentIteration = 0;
-
-
-    // Determine how many blocks are required.
-    unsigned int numBlocks = harmonic->m[0];
+    harmonic->delta = harmonic->epsilon + 1.0f;
 
     // Keep going until a threshold is reached.
-    while (/*delta > harmonic->epsilon ||*/ harmonic->currentIteration < mMax) {
-        //delta = 0.0;
-
-        harmonic_2d_update_gpu<<< numBlocks, numThreads >>>(harmonic->d_m, harmonic->d_u, harmonic->d_locked, harmonic->currentIteration);
+    while (harmonic->delta > harmonic->epsilon || harmonic->currentIteration < mMax) { // *** DEBUG ***
+        // We check for convergence on a staggered number of iterations.
+        if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
+            result = harmonic_update_and_check_gpu(harmonic, numThreads);
+        } else {
+            result = harmonic_update_gpu(harmonic, numThreads);
+            if (result != INERTIA_SUCCESS) {
+                fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to perform the Gauss-Seidel update step.");
+                return result;
+            }
+        }
 
         // *** DEBUG ***
-        if (harmonic->currentIteration % 100 == 0) {
-            //printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
-            printf("Iteration %i\n", harmonic->currentIteration);
+        if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
+            printf("Iteration %i --- %e\n", harmonic->currentIteration, harmonic->delta);
             fflush(stdout);
         }
         // *************
-
-        harmonic->currentIteration++;
     }
 
+    result = harmonic_get_potential_values_gpu(harmonic);
+    if (result != INERTIA_SUCCESS) {
+        fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to get all the potential values.");
+        return result;
+    }
+
+    result = harmonic_uninitialize_gpu(harmonic);
+    if (result != INERTIA_SUCCESS) {
+        fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to uninitialize GPU variables.");
+        return result;
+    }
+
+    return INERTIA_SUCCESS;
+}
+
+
+int harmonic_uninitialize_gpu(Harmonic *harmonic)
+{
+    int result;
+
+    result = INERTIA_SUCCESS;
+
+    // Reset the current iteration.
+    harmonic->currentIteration = 0;
+
+    if (harmonic->d_delta != nullptr) {
+        if (cudaFree(harmonic->d_delta) != cudaSuccess) {
+            fprintf(stderr, "Error[harmonic_uninitialize_gpu]: %s\n",
+                    "Failed to free device-side memory for delta.");
+            result = INERTIA_ERROR_DEVICE_FREE;
+        }
+    }
+    harmonic->d_delta = nullptr;
+
+    return result;
+}
+
+
+int harmonic_update_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    unsigned int numBlocks = harmonic_compute_num_blocks_gpu(harmonic, numThreads);
+
+    if (harmonic->n == 2) {
+        harmonic_update_2d_gpu<<< numBlocks, numThreads >>>(harmonic->d_m, harmonic->d_u, harmonic->d_locked,
+                                                            harmonic->currentIteration);
+    } else if (harmonic->n == 3) {
+    } else if (harmonic->n == 4) {
+    }
+
+    // Check if there was an error executing the kernel.
+    if (cudaGetLastError() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_gpu]: %s\n",
+                        "Failed to execute the 'Gauss-Seidel update' kernel.");
+        return INERTIA_ERROR_KERNEL_EXECUTION;
+    }
+
+    // Wait for the kernel to finish before looping more.
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_gpu]: %s\n",
+                    "Failed to synchronize the device after 'Gauss-Seidel update' kernel.");
+        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+    }
+
+    harmonic->currentIteration++;
+
+    return INERTIA_SUCCESS;
+}
+
+
+int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int numThreads)
+{
+    // The number of blocks depends on n, m, and the number of threads.
+    unsigned int numBlocks = harmonic_compute_num_blocks_gpu(harmonic, numThreads);
+
+    if (harmonic->n == 2) {
+        harmonic_update_and_check_2d_gpu<<< numBlocks, numThreads,
+                                            numThreads * sizeof(float) >>>(
+                                                harmonic->d_m, harmonic->d_u, harmonic->d_locked,
+                                                harmonic->currentIteration, harmonic->d_delta);
+    } else if (harmonic->n == 3) {
+    } else if (harmonic->n == 4) {
+    }
+
+    // Check if there was an error executing the kernel.
+    if (cudaGetLastError() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
+                        "Failed to execute the 'Gauss-Seidel update' kernel.");
+        return INERTIA_ERROR_KERNEL_EXECUTION;
+    }
+
+    // Wait for the kernel to finish before looping more.
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
+                    "Failed to synchronize the device after 'Gauss-Seidel update' kernel.");
+        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+    }
+
+    harmonic_compute_max_delta_gpu<<< 1, numThreads >>>(numBlocks, harmonic->d_delta);
+
+    // Check if there was an error executing the kernel.
+    if (cudaGetLastError() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
+                        "Failed to execute the 'delta check update' kernel.");
+        return INERTIA_ERROR_KERNEL_EXECUTION;
+    }
+
+    // Wait for the kernel to finish before looping more.
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
+                    "Failed to synchronize the device after 'delta check update' kernel.");
+        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+    }
+
+    // Retrieve the max delta value to check for convergence. Note: The first value in d_delta holds the maximal value.
+    if (cudaMemcpy(&harmonic->delta, harmonic->d_delta, 1 * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
+                "Failed to copy memory from device to host for the max delta.");
+        return INERTIA_ERROR_MEMCPY_TO_HOST;
+    }
+
+    harmonic->currentIteration++;
+
+    if (harmonic->delta < harmonic->epsilon) {
+        return INERTIA_SUCCESS_AND_CONVERGED;
+    } else {
+        return INERTIA_SUCCESS;
+    }
+}
+
+
+int harmonic_get_potential_values_gpu(Harmonic *harmonic)
+{
     // Compute the number of cells.
     unsigned int numCells = 1;
     for (unsigned int i = 0; i < harmonic->n; i++) {
@@ -178,17 +419,11 @@ int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads)
 
     // Copy the final (or intermediate) result from device to host.
     if (cudaMemcpy(harmonic->u, harmonic->d_u, numCells * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-        fprintf(stderr, "Error[harmonic_2d_gpu]: %s\n",
+        fprintf(stderr, "Error[harmonic_get_potential_values_gpu]: %s\n",
                 "Failed to copy memory from device to host for the potential values.");
         return INERTIA_ERROR_MEMCPY_TO_HOST;
     }
 
     return INERTIA_SUCCESS;
 }
-
-//int harmonic_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
-
-//int harmonic_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
-
-
 

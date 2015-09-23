@@ -92,10 +92,8 @@ class HarmonicMap(harm.Harmonic):
             for x in range(self.m[1]):
                 # u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
                 if self.u[y * self.m[1] + x] == 1.0:
-                    # log(epsilon) = -1e10  =>  epsilon = e^-1e10 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    # For example, e^-1e1 = 0.00004539992, e^-1e2 = 3.720076e-44, etc.
-                    # Note: This is within precision of doubles, which has issues around +/- 1e15.
-                    self.u[y * self.m[1] + x] = -1e15
+                    # Note: This is within precision of floats, which has issues around +/- 1e6
+                    self.u[y * self.m[1] + x] = -1e6
                 else:
                     self.u[y * self.m[1] + x] = 0.0
 

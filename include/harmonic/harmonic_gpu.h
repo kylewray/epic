@@ -27,40 +27,59 @@
 
 
 /**
- *  Compute the fixed point of the 2-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
+ *  Execute a Gauss-Seidel harmonic function solver until convergence. Uses the GPU (CUDA).
  *  @param  harmonic    The Harmonic object.
  *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_2d_gpu(Harmonic *harmonic, unsigned int numThreads);
+extern "C" int harmonic_complete_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 /**
- *  Compute the fixed point of the 3-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
+ *  Step 1/3: Initialize the GPU-specific variables for the Gauss-Seidel GPU implementation.
  *  @param  harmonic    The Harmonic object.
  *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_3d_gpu(Harmonic *harmonic, unsigned int numThreads);
+extern "C" int harmonic_initialize_gpu(Harmonic *harmonic, unsigned int numThreads);
 
 /**
- *  Compute the fixed point of the 4-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
+ *  Step 2/3: Execute the Gauss-Seidel GPU update step until convergence.
  *  @param  harmonic    The Harmonic object.
  *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_4d_gpu(Harmonic *harmonic, unsigned int numThreads);
+extern "C" int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads);
+
+/**
+ *  Step 3/3: Uninitialize the GPU-specific variables for the Gauss-Seidel GPU implementation.
+ *  @param  harmonic    The Harmonic object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_uninitialize_gpu(Harmonic *harmonic);
+
+/**
+ *  Perform a single update step of the Gauss-Seidel GPU implementation.
+ *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_update_gpu(Harmonic *harmonic, unsigned int numThreads);
+
+/**
+ *  Perform a single update step of the Gauss-Seidel GPU implementation, plus check
+ *  for convergence of the iteration.
+ *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads, as a multiple of 32 (e.g., 1024).
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int numThreads);
+
+/**
+ *  Copy the potential values from the GPU-side memory to the CPU-side memory.
+ *  @param  harmonic    The Harmonic object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_get_potential_values_gpu(Harmonic *harmonic);
 
 
 #endif // HARMONIC_GPU_H

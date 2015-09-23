@@ -43,10 +43,13 @@ class Harmonic(ih.InertiaHarmonic):
         self.u = ct.POINTER(ct.c_float)()
         self.locked = ct.POINTER(ct.c_uint)()
         self.epsilon = 1e-2
+        self.delta = self.epsilon + 1.0
+        self.numIterationsToStaggerCheck = int(100)
         self.currentIteration = int(0)
         self.d_m = ct.POINTER(ct.c_uint)()
         self.d_u = ct.POINTER(ct.c_float)()
         self.d_locked = ct.POINTER(ct.c_uint)()
+        self.d_delta = ct.POINTER(ct.c_float)()
 
     def solve(self, algorithm='gauss-seidel', process='gpu', numThreads=1024, epsilon=1e-2):
         """ Solve the Harmonic function.
@@ -63,50 +66,42 @@ class Harmonic(ih.InertiaHarmonic):
 
         self.epsilon = epsilon
 
-        timing = (time.time(), time.clock())
+        timing = None
 
-        if process == 'gpu':
-            result = ih._inertia.harmonic_initialize_dimension_size_gpu(self)
-            result += ih._inertia.harmonic_initialize_potential_values_gpu(self)
-            result += ih._inertia.harmonic_initialize_locked_gpu(self)
-            if result != 0:
-                print("Failed to initialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
-                process = 'cpu'
+        if algorithm == 'gauss-seidel':
+            if process == 'gpu':
+                result = ih._inertia.harmonic_initialize_dimension_size_gpu(self)
+                result += ih._inertia.harmonic_initialize_potential_values_gpu(self)
+                result += ih._inertia.harmonic_initialize_locked_gpu(self)
+                if result != 0:
+                    print("Failed to initialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
+                    process = 'cpu'
 
-            if algorithm == 'gauss-seidel':
-                if self.n == 2:
-                    result = ih._inertia.harmonic_2d_gpu(self, int(numThreads))
-                    if result != 0:
-                        print("Failed to execute the 'inertia' library's GPU Gauss-Seidel solver.")
-                        process = 'cpu'
-                else:
-                    print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
+                timing = (time.time(), time.clock())
+                result = ih._inertia.harmonic_complete_gpu(self, int(numThreads))
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+
+                if result != 0:
+                    print("Failed to execute the 'inertia' library's GPU Gauss-Seidel solver.")
+                    process = 'cpu'
+
+                result = ih._inertia.harmonic_uninitialize_dimension_size_gpu(self)
+                result += ih._inertia.harmonic_uninitialize_potential_values_gpu(self)
+                result += ih._inertia.harmonic_uninitialize_locked_gpu(self)
+                if result != 0:
+                    # Note: Failing at uninitialization should not cause the CPU version to be executed.
+                    print("Failed to uninitialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
+
+            if process == 'cpu':
+                timing = (time.time(), time.clock())
+                result = ih._inertia.harmonic_2d_cpu(self)
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+
+                if result != 0:
+                    print("Failed to execute the 'harmonic' library's CPU Gauss-Seidel solver.")
                     raise Exception()
-            else:
-                print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
-
-            result = ih._inertia.harmonic_uninitialize_dimension_size_gpu(self)
-            result += ih._inertia.harmonic_uninitialize_potential_values_gpu(self)
-            result += ih._inertia.harmonic_uninitialize_locked_gpu(self)
-            if result != 0:
-                # Note: Failing at uninitialization should not cause the CPU version to be executed.
-                print("Failed to uninitialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
-
-        if process == 'cpu':
-            if algorithm == 'gauss-seidel':
-                if self.n == 2:
-                    result = ih._inertia.harmonic_2d_cpu(self)
-                    if result != 0:
-                        print("Failed to execute the 'harmonic' library's CPU Gauss-Seidel solver.")
-                        process = 'cpu'
-                else:
-                    print("Failed to solve since the algorithm for dimension %i is not valid." % (self.n))
-                    raise Exception()
-
-            else:
-                print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
-
-        timing = (time.time() - timing[0], time.clock() - timing[1])
+        else:
+            print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
 
         return timing
 

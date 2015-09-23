@@ -47,10 +47,13 @@ class InertiaHarmonic(ct.Structure):
                 ("u", ct.POINTER(ct.c_float)),
                 ("locked", ct.POINTER(ct.c_uint)),
                 ("epsilon", ct.c_float),
+                ("delta", ct.c_float),
+                ("numIterationsToStaggerCheck", ct.c_uint),
                 ("currentIteration", ct.c_uint),
                 ("d_m", ct.POINTER(ct.c_uint)),
                 ("d_u", ct.POINTER(ct.c_float)),
                 ("d_locked", ct.POINTER(ct.c_uint)),
+                ("d_delta", ct.POINTER(ct.c_float)),
                 ]
 
 
@@ -58,8 +61,13 @@ class InertiaHarmonic(ct.Structure):
 _inertia.harmonic_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
 # Functions from 'harmonic_gpu.h'.
-_inertia.harmonic_2d_gpu.argtypes = (ct.POINTER(InertiaHarmonic),
-                                            ct.c_uint)     # numThreads
+_inertia.harmonic_complete_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
+_inertia.harmonic_initialize_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
+_inertia.harmonic_execute_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
+_inertia.harmonic_uninitialize_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_update_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
+_inertia.harmonic_update_and_check_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
+_inertia.harmonic_get_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
 
 # Functions from 'harmonic_model_gpu.h'.
