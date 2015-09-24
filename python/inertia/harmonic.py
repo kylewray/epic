@@ -94,7 +94,7 @@ class Harmonic(ih.InertiaHarmonic):
 
             if process == 'cpu':
                 timing = (time.time(), time.clock())
-                result = ih._inertia.harmonic_2d_cpu(self)
+                result = ih._inertia.harmonic_complete_cpu(self)
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
                 if result != 0:

@@ -33,12 +33,53 @@
 #include <cmath>
 
 
-int harmonic_2d_cpu(Harmonic *harmonic)
+void harmonic_update_2d_cpu(Harmonic *harmonic)
 {
+    harmonic->delta = 0.0;
+
+    // Iterate over all non-boundary cells and update its value based on a red-black ordering.
+    // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
+    for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
+        // Determine if this rows starts with a red (even row) or black (odd row) cell, and
+        // update the opposite depending on how many iterations there have been.
+        unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
+
+        for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
+            // If this is locked, then skip it.
+            if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
+                continue;
+            }
+
+            float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
+
+            // Update the value at this location with the log-sum-exp trick.
+            float maxVal = FLT_MIN;
+            maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] + x1], harmonic->u[(x0 + 1) * harmonic->m[1] + x1]);
+            maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 - 1)]);
+            maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
+
+            harmonic->u[x0 * harmonic->m[1] + x1] =  maxVal + std::log(
+                                                        std::exp(harmonic->u[(x0 - 1) * harmonic->m[1] + x1] - maxVal) +
+                                                        std::exp(harmonic->u[(x0 + 1) * harmonic->m[1] + x1] - maxVal) +
+                                                        std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] - maxVal) +
+                                                        std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 + 1)] - maxVal)) -
+                                                    std::log(2.0 * harmonic->n);
+
+            // Compute the updated delta.
+            harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
+        }
+    }
+}
+
+
+int harmonic_complete_cpu(Harmonic *harmonic)
+{
+    int result;
+
     // Ensure data is valid before we begin.
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
             harmonic->locked == nullptr || harmonic->epsilon <= 0.0) {
-        fprintf(stderr, "Error[harmonic_2d_cpu]: %s\n", "Invalid data.");
+        fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n", "Invalid data.");
         return INERTIA_ERROR_INVALID_DATA;
     }
 
@@ -49,59 +90,43 @@ int harmonic_2d_cpu(Harmonic *harmonic)
     }
 
     harmonic->currentIteration = 0;
+    harmonic->delta = harmonic->epsilon + 1.0;
 
-    float delta = harmonic->epsilon + 1.0;
-    while (delta > harmonic->epsilon || harmonic->currentIteration < mMax) {
-        delta = 0.0;
+    result = INERTIA_SUCCESS;
 
-        // Iterate over all non-boundary cells and update its value based on a red-black ordering.
-        // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
-        for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
-            // Determine if this rows starts with a red (even row) or black (odd row) cell, and
-            // update the opposite depending on how many iterations there have been.
-            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
-
-            for (unsigned int x1 = 1 + offset; x1 < harmonic->m[1] - 1; x1 += 2) {
-                // If this is locked, then skip it.
-                if (harmonic->locked[x0 * harmonic->m[1] + x1]) {
-                    continue;
-                }
-
-                float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
-
-                // Update the value at this location with the log-sum-exp trick.
-                float maxVal = FLT_MIN;
-                maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] + x1], harmonic->u[(x0 + 1) * harmonic->m[1] + x1]);
-                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 - 1)]);
-                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
-
-                harmonic->u[x0 * harmonic->m[1] + x1] =  maxVal + std::log(
-                                                            std::exp(harmonic->u[(x0 - 1) * harmonic->m[1] + x1] - maxVal) +
-                                                            std::exp(harmonic->u[(x0 + 1) * harmonic->m[1] + x1] - maxVal) +
-                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 - 1)] - maxVal) +
-                                                            std::exp(harmonic->u[x0 * harmonic->m[1] + (x1 + 1)] - maxVal)) -
-                                                        std::log(2.0 * harmonic->n);
-
-                // Compute the updated delta.
-                delta = std::max(delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
-            }
+    while (result != INERTIA_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
+        result = harmonic_update_cpu(harmonic);
+        if (result != INERTIA_SUCCESS && result != INERTIA_SUCCESS_AND_CONVERGED) {
+            fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n",
+                            "Failed to perform the Gauss-Seidel update (and check) step.");
+            return result;
         }
 
-        // *** DEBUG ***
+        /* *** DEBUG ***
         if (harmonic->currentIteration % 100 == 0) {
             printf("Iteration %i --- %e\n", harmonic->currentIteration, delta);
             fflush(stdout);
         }
-        // *************
-
-        harmonic->currentIteration++;
+        //*/
     }
 
     return INERTIA_SUCCESS;
 }
 
-//int harmonic_3d_cpu(Harmonic *harmonic);
 
-//int harmonic_4d_cpu(Harmonic *harmonic);
+int harmonic_update_cpu(Harmonic *harmonic)
+{
+    if (harmonic->n == 2) {
+        harmonic_update_2d_cpu(harmonic);
+    } else if (harmonic->n == 3) {
+    } else if (harmonic->n == 4) {
+    }
 
+    harmonic->currentIteration++;
 
+    if (harmonic->delta < harmonic->epsilon) {
+        return INERTIA_SUCCESS_AND_CONVERGED;
+    } else {
+        return INERTIA_SUCCESS;
+    }
+}

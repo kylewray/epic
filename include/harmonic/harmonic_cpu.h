@@ -27,37 +27,18 @@
 
 
 /**
- *  Compute the fixed point of the 2-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
+ *  Execute a Gauss-Seidel harmonic function solver until convergence. Uses the CPU.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_2d_cpu(Harmonic *harmonic);
+extern "C" int harmonic_complete_cpu(Harmonic *harmonic);
 
 /**
- *  Compute the fixed point of the 3-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
+ *  Perform a single update step of the Gauss-Seidel CPU implementation, also updating delta.
  *  @param  harmonic    The Harmonic object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-//extern "C" int harmonic_3d_cpu(Harmonic *harmonic);
-
-/**
- *  Compute the fixed point of the 4-dimensional harmonic function provided following
- *  the Gauss-Seidel method. The harmonic function u must be defined
- *  such that boundaries or "goal states" (i.e., any fixed value) have the sign bit
- *  flipped. All other values will be modified in-place. The process terminates when the
- *  maximal change between any state is less than epsilon.
- *  @param  harmonic    The Harmonic object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-//extern "C" int harmonic_4d_cpu(Harmonic *harmonic);
+extern "C" int harmonic_update_cpu(Harmonic *harmonic);
 
 
 #endif // HARMONIC_CPU_H

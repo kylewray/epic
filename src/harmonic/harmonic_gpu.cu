@@ -258,25 +258,33 @@ int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
 
     harmonic->delta = harmonic->epsilon + 1.0f;
 
+    result = INERTIA_SUCCESS;
+
     // Keep going until a threshold is reached.
-    while (harmonic->delta > harmonic->epsilon || harmonic->currentIteration < mMax) { // *** DEBUG ***
+    while (result != INERTIA_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
         // We check for convergence on a staggered number of iterations.
         if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
             result = harmonic_update_and_check_gpu(harmonic, numThreads);
+            if (result != INERTIA_SUCCESS && result != INERTIA_SUCCESS_AND_CONVERGED) {
+                fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
+                                "Failed to perform the Gauss-Seidel update and check step.");
+                return result;
+            }
         } else {
             result = harmonic_update_gpu(harmonic, numThreads);
             if (result != INERTIA_SUCCESS) {
-                fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to perform the Gauss-Seidel update step.");
+                fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
+                                "Failed to perform the Gauss-Seidel update step.");
                 return result;
             }
         }
 
-        // *** DEBUG ***
+        /* *** DEBUG ***
         if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
             printf("Iteration %i --- %e\n", harmonic->currentIteration, harmonic->delta);
             fflush(stdout);
         }
-        // *************
+        //*/
     }
 
     result = harmonic_get_potential_values_gpu(harmonic);

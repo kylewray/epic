@@ -58,7 +58,8 @@ class InertiaHarmonic(ct.Structure):
 
 
 # Functions from 'harmonic_cpu.h'.
-_inertia.harmonic_2d_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_complete_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_inertia.harmonic_update_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
 
 # Functions from 'harmonic_gpu.h'.
 _inertia.harmonic_complete_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
