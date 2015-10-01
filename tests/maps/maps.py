@@ -30,26 +30,45 @@ from inertia.harmonic import *
 from inertia.harmonic_map import *
 
 
-#harmonicMapFile = os.path.join(thisFilePath, "images/simple.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/simple_big.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/basic.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/maze_1.png")
-#harmonicMapFile = os.path.join(thisFilePath, "images/maze_2.png")
-harmonicMapFile = os.path.join(thisFilePath, "images/awesome.png")
+images = [
+          {'name': "Basic", 'filename': os.path.join(thisFilePath, "images/basic.png")},
+          {'name': "C-Space", 'filename': os.path.join(thisFilePath, "images/c_space.png")},
+          {'name': "Maze 1", 'filename': os.path.join(thisFilePath, "images/maze_1.png")},
+          {'name': "Maze 2", 'filename': os.path.join(thisFilePath, "images/maze_2.png")},
+          {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "images/maze_3.png")},
+         ]
 
-harmonicMap = HarmonicMap()
-harmonicMap.load(harmonicMapFile)
-
-print(harmonicMap)
-
-harmonicMap.show()
-
-timing = harmonicMap.solve(process='gpu', epsilon=1e-1)
-
-print(harmonicMap)
-print(timing)
-
-harmonicMap.show()
+precisions = [1e-1, 1e-2, 1e-3]
+processes = ['gpu', 'cpu']
 
 
+if __name__ == "__main__":
+    if len(sys.argv) != 2 or sys.argv[1] not in ['visual', 'batch']:
+        print("Please specify either 'visual' or 'batch' as an argument.")
+        sys.exit(0)
+
+    for img in images:
+        print("Image: %s." % (img['name']))
+
+        if sys.argv[1] == 'visual':
+            harmonicMap = HarmonicMap()
+            harmonicMap.load(img['filename'])
+            #harmonicMap.show()
+
+            timing = harmonicMap.solve(process='gpu', epsilon=1e-2)
+            harmonicMap.show()
+
+        elif sys.argv[1] == 'batch':
+            for prec in precisions:
+                for proc in processes:
+                    print("%s %s " % (prec, proc), end='')
+                    sys.stdout.flush()
+
+                    harmonicMap = HarmonicMap()
+                    harmonicMap.load(img['filename'])
+                    timing = harmonicMap.solve(process=proc, epsilon=prec)
+
+                    print("%.2f" % (timing[0]))
+
+    print("Done.")
 

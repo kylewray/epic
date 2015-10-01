@@ -72,6 +72,57 @@ void harmonic_update_2d_cpu(Harmonic *harmonic)
 }
 
 
+void harmonic_update_3d_cpu(Harmonic *harmonic)
+{
+    harmonic->delta = 0.0;
+
+    // Iterate over all non-boundary cells and update its value based on a red-black ordering.
+    // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
+    for (unsigned int x0 = 1; x0 < harmonic->m[0] - 1; x0++) {
+        for (unsigned int x1 = 1; x1 < harmonic->m[1] - 1; x1++) {
+            // Determine if this rows starts with a red (even row) or black (odd row) cell, and
+            // update the opposite depending on how many iterations there have been.
+            unsigned int offset = (unsigned int)((harmonic->currentIteration % 2) != (x0 % 2));
+
+            // We also negate the offset based on this dimension.
+            if (x1 % 2 == 0) {
+                offset = (unsigned int)(!(bool)offset);
+            }
+
+            for (unsigned int x2 = 1 + offset; x2 < harmonic->m[2] - 1; x2 += 2) {
+                // If this is locked, then skip it.
+                if (harmonic->locked[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]) {
+                    continue;
+                }
+
+                float uPrevious = harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2];
+
+                // Update the value at this location with the log-sum-exp trick.
+                float maxVal = FLT_MIN;
+                maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2],
+                                harmonic->u[(x0 + 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + (x1 - 1) * harmonic->m[2] + x2]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + (x1 + 1) * harmonic->m[2] + x2]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + (x2 - 1)]);
+                maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + (x2 + 1)]);
+
+                harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2] =  maxVal + std::log(
+                                                            std::exp(harmonic->u[(x0 - 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2] - maxVal) +
+                                                            std::exp(harmonic->u[(x0 + 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + (x1 - 1) * harmonic->m[2] + x2] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + (x1 + 1) * harmonic->m[2] + x2] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + (x2 - 1)] - maxVal) +
+                                                            std::exp(harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + (x2 + 1)] - maxVal)) -
+                                                        std::log(2.0 * harmonic->n);
+
+                // Compute the updated delta.
+                harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]));
+            }
+        }
+    }
+}
+
+
 int harmonic_complete_cpu(Harmonic *harmonic)
 {
     int result;
@@ -118,6 +169,7 @@ int harmonic_update_cpu(Harmonic *harmonic)
 {
     if (harmonic->n == 2) {
         harmonic_update_2d_cpu(harmonic);
+        harmonic_update_3d_cpu(harmonic);
     } else if (harmonic->n == 3) {
     } else if (harmonic->n == 4) {
     }

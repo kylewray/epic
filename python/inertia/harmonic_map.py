@@ -183,6 +183,9 @@ class HarmonicMap(harm.Harmonic):
             partialx /= denom
             partialy /= denom
 
+            # Note: This is "+" for gradient *descent* (backwards from normal) here because
+            # "partialx" and "partialy" were computed using log-space with (1-u) in there,
+            # so the log-space solution's gradient points the opposite way. (See proofs.)
             x += partialx * pathStepSize
             y += partialy * pathStepSize
 
