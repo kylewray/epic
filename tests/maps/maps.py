@@ -26,8 +26,8 @@ import sys
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
-from inertia.harmonic import *
-from inertia.harmonic_map import *
+from epic.harmonic import *
+from epic.harmonic_map import *
 
 
 images = [
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             harmonicMap.load(img['filename'])
             #harmonicMap.show()
 
-            timing = harmonicMap.solve(process='gpu', epsilon=1e-2)
+            timing = harmonicMap.solve(process='gpu', epsilon=1e-1)
             harmonicMap.show()
 
         elif sys.argv[1] == 'batch':

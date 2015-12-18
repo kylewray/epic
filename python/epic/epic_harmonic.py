@@ -28,18 +28,18 @@ import os.path
 # Check if we need to create the harmonic variable. If so, import the correct library
 # file depending on the platform.
 #try:
-#    _inertia
+#    _epic
 #except NameError:
-_inertia = None
+_epic = None
 if platform.system() == "Windows":
-    _inertia = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "inertia.dll"))
+    _ = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "lib", "epic.dll"))
 else:
-    _inertia = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "inertia.so"))
+    _epic = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                    "..", "..", "lib", "epic.so"))
 
 
-class InertiaHarmonic(ct.Structure):
+class EpicHarmonic(ct.Structure):
     """ The C struct Harmonic object. """
 
     _fields_ = [("n", ct.c_uint),
@@ -58,26 +58,26 @@ class InertiaHarmonic(ct.Structure):
 
 
 # Functions from 'harmonic_cpu.h'.
-_inertia.harmonic_complete_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
-_inertia.harmonic_update_cpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_epic.harmonic_complete_cpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_update_cpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
 # Functions from 'harmonic_gpu.h'.
-_inertia.harmonic_complete_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
-_inertia.harmonic_initialize_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
-_inertia.harmonic_execute_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
-_inertia.harmonic_uninitialize_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
-_inertia.harmonic_update_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
-_inertia.harmonic_update_and_check_gpu.argtypes = (ct.POINTER(InertiaHarmonic), ct.c_uint)
-_inertia.harmonic_get_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_epic.harmonic_complete_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
+_epic.harmonic_initialize_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
+_epic.harmonic_execute_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
+_epic.harmonic_uninitialize_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_update_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
+_epic.harmonic_update_and_check_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
+_epic.harmonic_get_potential_values_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
 
 # Functions from 'harmonic_model_gpu.h'.
-_inertia.harmonic_initialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
-_inertia.harmonic_uninitialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_epic.harmonic_initialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_uninitialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
-_inertia.harmonic_initialize_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
-_inertia.harmonic_uninitialize_potential_values_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_epic.harmonic_initialize_potential_values_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_uninitialize_potential_values_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
-_inertia.harmonic_initialize_locked_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
-_inertia.harmonic_uninitialize_locked_gpu.argtypes = tuple([ct.POINTER(InertiaHarmonic)])
+_epic.harmonic_initialize_locked_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_uninitialize_locked_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 

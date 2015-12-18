@@ -168,32 +168,32 @@ int harmonic_complete_gpu(Harmonic *harmonic, unsigned int numThreads)
     int result;
 
     result = harmonic_initialize_dimension_size_gpu(harmonic);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         return result;
     }
     result = harmonic_initialize_potential_values_gpu(harmonic);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         return result;
     }
     result = harmonic_initialize_locked_gpu(harmonic);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         return result;
     }
 
     result = harmonic_execute_gpu(harmonic, numThreads);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         return result;
     }
 
-    result = INERTIA_SUCCESS;
-    if (harmonic_uninitialize_dimension_size_gpu(harmonic) != INERTIA_SUCCESS) {
-        result = INERTIA_ERROR_DEVICE_FREE;
+    result = EPIC_SUCCESS;
+    if (harmonic_uninitialize_dimension_size_gpu(harmonic) != EPIC_SUCCESS) {
+        result = EPIC_ERROR_DEVICE_FREE;
     }
-    if (harmonic_uninitialize_potential_values_gpu(harmonic) != INERTIA_SUCCESS) {
-        result = INERTIA_ERROR_DEVICE_FREE;
+    if (harmonic_uninitialize_potential_values_gpu(harmonic) != EPIC_SUCCESS) {
+        result = EPIC_ERROR_DEVICE_FREE;
     }
-    if (harmonic_uninitialize_locked_gpu(harmonic) != INERTIA_SUCCESS) {
-        result = INERTIA_ERROR_DEVICE_FREE;
+    if (harmonic_uninitialize_locked_gpu(harmonic) != EPIC_SUCCESS) {
+        result = EPIC_ERROR_DEVICE_FREE;
     }
 
     return result;
@@ -208,7 +208,7 @@ int harmonic_initialize_gpu(Harmonic *harmonic, unsigned int numThreads)
     // Ensure the data is valid.
     if (harmonic->n == 0 || harmonic->m == nullptr || harmonic->d_delta != nullptr) {
         fprintf(stderr, "Error[harmonic_initialize_gpu]: %s\n", "Invalid input.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     unsigned int numBlocks = harmonic_compute_num_blocks_gpu(harmonic, numThreads);
@@ -217,10 +217,10 @@ int harmonic_initialize_gpu(Harmonic *harmonic, unsigned int numThreads)
     if (cudaMalloc(&harmonic->d_delta, numBlocks * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for delta.");
-        return INERTIA_ERROR_DEVICE_MALLOC;
+        return EPIC_ERROR_DEVICE_MALLOC;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -235,17 +235,17 @@ int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
             harmonic->d_m == nullptr || harmonic->d_u == nullptr ||
             harmonic->d_locked == nullptr) {
         fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Invalid data.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     if (numThreads % 32 != 0) {
         fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
                     "Must specficy a number of threads divisible by 32 (the number of threads in a warp).");
-        return INERTIA_ERROR_INVALID_CUDA_PARAM;
+        return EPIC_ERROR_INVALID_CUDA_PARAM;
     }
 
     result = harmonic_initialize_gpu(harmonic, numThreads);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to initialize GPU variables.");
         return result;
     }
@@ -258,21 +258,21 @@ int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
 
     harmonic->delta = harmonic->epsilon + 1.0f;
 
-    result = INERTIA_SUCCESS;
+    result = EPIC_SUCCESS;
 
     // Keep going until a threshold is reached.
-    while (result != INERTIA_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
+    while (result != EPIC_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
         // We check for convergence on a staggered number of iterations.
         if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
             result = harmonic_update_and_check_gpu(harmonic, numThreads);
-            if (result != INERTIA_SUCCESS && result != INERTIA_SUCCESS_AND_CONVERGED) {
+            if (result != EPIC_SUCCESS && result != EPIC_SUCCESS_AND_CONVERGED) {
                 fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
                                 "Failed to perform the Gauss-Seidel update and check step.");
                 return result;
             }
         } else {
             result = harmonic_update_gpu(harmonic, numThreads);
-            if (result != INERTIA_SUCCESS) {
+            if (result != EPIC_SUCCESS) {
                 fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n",
                                 "Failed to perform the Gauss-Seidel update step.");
                 return result;
@@ -288,18 +288,18 @@ int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
     }
 
     result = harmonic_get_potential_values_gpu(harmonic);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to get all the potential values.");
         return result;
     }
 
     result = harmonic_uninitialize_gpu(harmonic);
-    if (result != INERTIA_SUCCESS) {
+    if (result != EPIC_SUCCESS) {
         fprintf(stderr, "Error[harmonic_execute_gpu]: %s\n", "Failed to uninitialize GPU variables.");
         return result;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -307,7 +307,7 @@ int harmonic_uninitialize_gpu(Harmonic *harmonic)
 {
     int result;
 
-    result = INERTIA_SUCCESS;
+    result = EPIC_SUCCESS;
 
     // Reset the current iteration.
     harmonic->currentIteration = 0;
@@ -316,7 +316,7 @@ int harmonic_uninitialize_gpu(Harmonic *harmonic)
         if (cudaFree(harmonic->d_delta) != cudaSuccess) {
             fprintf(stderr, "Error[harmonic_uninitialize_gpu]: %s\n",
                     "Failed to free device-side memory for delta.");
-            result = INERTIA_ERROR_DEVICE_FREE;
+            result = EPIC_ERROR_DEVICE_FREE;
         }
     }
     harmonic->d_delta = nullptr;
@@ -340,19 +340,19 @@ int harmonic_update_gpu(Harmonic *harmonic, unsigned int numThreads)
     if (cudaGetLastError() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_gpu]: %s\n",
                         "Failed to execute the 'Gauss-Seidel update' kernel.");
-        return INERTIA_ERROR_KERNEL_EXECUTION;
+        return EPIC_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_gpu]: %s\n",
                     "Failed to synchronize the device after 'Gauss-Seidel update' kernel.");
-        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+        return EPIC_ERROR_DEVICE_SYNCHRONIZE;
     }
 
     harmonic->currentIteration++;
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -374,14 +374,14 @@ int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int numThreads)
     if (cudaGetLastError() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
                         "Failed to execute the 'Gauss-Seidel update' kernel.");
-        return INERTIA_ERROR_KERNEL_EXECUTION;
+        return EPIC_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
                     "Failed to synchronize the device after 'Gauss-Seidel update' kernel.");
-        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+        return EPIC_ERROR_DEVICE_SYNCHRONIZE;
     }
 
     harmonic_compute_max_delta_gpu<<< 1, numThreads >>>(numBlocks, harmonic->d_delta);
@@ -390,29 +390,29 @@ int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int numThreads)
     if (cudaGetLastError() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
                         "Failed to execute the 'delta check update' kernel.");
-        return INERTIA_ERROR_KERNEL_EXECUTION;
+        return EPIC_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
                     "Failed to synchronize the device after 'delta check update' kernel.");
-        return INERTIA_ERROR_DEVICE_SYNCHRONIZE;
+        return EPIC_ERROR_DEVICE_SYNCHRONIZE;
     }
 
     // Retrieve the max delta value to check for convergence. Note: The first value in d_delta holds the maximal value.
     if (cudaMemcpy(&harmonic->delta, harmonic->d_delta, 1 * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_update_and_check_gpu]: %s\n",
                 "Failed to copy memory from device to host for the max delta.");
-        return INERTIA_ERROR_MEMCPY_TO_HOST;
+        return EPIC_ERROR_MEMCPY_TO_HOST;
     }
 
     harmonic->currentIteration++;
 
     if (harmonic->delta < harmonic->epsilon) {
-        return INERTIA_SUCCESS_AND_CONVERGED;
+        return EPIC_SUCCESS_AND_CONVERGED;
     } else {
-        return INERTIA_SUCCESS;
+        return EPIC_SUCCESS;
     }
 }
 
@@ -429,9 +429,9 @@ int harmonic_get_potential_values_gpu(Harmonic *harmonic)
     if (cudaMemcpy(harmonic->u, harmonic->d_u, numCells * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_get_potential_values_gpu]: %s\n",
                 "Failed to copy memory from device to host for the potential values.");
-        return INERTIA_ERROR_MEMCPY_TO_HOST;
+        return EPIC_ERROR_MEMCPY_TO_HOST;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 

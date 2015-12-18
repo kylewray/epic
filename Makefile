@@ -1,12 +1,12 @@
 COMMAND = nvcc
 FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
 
-all: inertia
+all: epic
 
-inertia: harmonic_gpu.o harmonic_cpu.o
+epic: harmonic_gpu.o harmonic_cpu.o
 	mkdir -p lib
-	$(COMMAND) $(FLAGS) obj/*.o -o inertia.so
-	mv inertia.so lib
+	$(COMMAND) $(FLAGS) obj/*.o -o epic.so
+	mv epic.so lib
 
 harmonic_gpu.o: src/harmonic/*.cu
 	mkdir -p obj

@@ -34,14 +34,14 @@ int harmonic_initialize_dimension_size_gpu(Harmonic *harmonic)
     // Ensure the data is valid.
     if (harmonic->n == 0 || harmonic->m == nullptr) {
         fprintf(stderr, "Error[harmonic_initialize_dimension_size_gpu]: %s\n", "Invalid input.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     // Allocate the memory on the device.
     if (cudaMalloc(&harmonic->d_m, harmonic->n * sizeof(unsigned int)) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_dimension_size_gpu]: %s\n",
                 "Failed to allocate device-side memory for the dimension size.");
-        return INERTIA_ERROR_DEVICE_MALLOC;
+        return EPIC_ERROR_DEVICE_MALLOC;
     }
 
     // Copy the data from the host to the device.
@@ -49,10 +49,10 @@ int harmonic_initialize_dimension_size_gpu(Harmonic *harmonic)
                     cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_dimension_size_gpu]: %s\n",
                 "Failed to copy memory from host to device for the dimension size.");
-        return INERTIA_ERROR_MEMCPY_TO_DEVICE;
+        return EPIC_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -62,12 +62,12 @@ int harmonic_uninitialize_dimension_size_gpu(Harmonic *harmonic)
         if (cudaFree(harmonic->d_m) != cudaSuccess) {
             fprintf(stderr, "Error[harmonic_uninitialize_dimension_size_gpu]: %s\n",
                     "Failed to free device-side memory for the dimension size.");
-            return INERTIA_ERROR_DEVICE_FREE;
+            return EPIC_ERROR_DEVICE_FREE;
         }
     }
     harmonic->d_m = nullptr;
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -76,7 +76,7 @@ int harmonic_initialize_potential_values_gpu(Harmonic *harmonic)
     // Ensure the data is valid.
     if (harmonic->n == 0 || harmonic->m == nullptr || harmonic->u == nullptr) {
         fprintf(stderr, "Error[harmonic_initialize_potential_values_gpu]: %s\n", "Invalid input.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     // Compute the number of cells.
@@ -89,7 +89,7 @@ int harmonic_initialize_potential_values_gpu(Harmonic *harmonic)
     if (cudaMalloc(&harmonic->d_u, numCells * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_potential_values_gpu]: %s\n",
                 "Failed to allocate device-side memory for the potential values.");
-        return INERTIA_ERROR_DEVICE_MALLOC;
+        return EPIC_ERROR_DEVICE_MALLOC;
     }
 
     // Copy the data from the host to the device.
@@ -97,10 +97,10 @@ int harmonic_initialize_potential_values_gpu(Harmonic *harmonic)
                     cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_potential_values_gpu]: %s\n",
                 "Failed to copy memory from host to device for the potential values.");
-        return INERTIA_ERROR_MEMCPY_TO_DEVICE;
+        return EPIC_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -110,12 +110,12 @@ int harmonic_uninitialize_potential_values_gpu(Harmonic *harmonic)
         if (cudaFree(harmonic->d_u) != cudaSuccess) {
             fprintf(stderr, "Error[harmonic_uninitialize_potential_values_gpu]: %s\n",
                     "Failed to free device-side memory for the potential values.");
-            return INERTIA_ERROR_DEVICE_FREE;
+            return EPIC_ERROR_DEVICE_FREE;
         }
     }
     harmonic->d_u = nullptr;
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -124,7 +124,7 @@ int harmonic_initialize_locked_gpu(Harmonic *harmonic)
     // Ensure the data is valid.
     if (harmonic->n == 0 || harmonic->m == nullptr || harmonic->locked == nullptr) {
         fprintf(stderr, "Error[harmonic_initialize_locked_gpu]: %s\n", "Invalid input.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     // Compute the number of cells.
@@ -137,7 +137,7 @@ int harmonic_initialize_locked_gpu(Harmonic *harmonic)
     if (cudaMalloc(&harmonic->d_locked, numCells * sizeof(unsigned int)) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_locked_gpu]: %s\n",
                 "Failed to allocate device-side memory for the locked cells.");
-        return INERTIA_ERROR_DEVICE_MALLOC;
+        return EPIC_ERROR_DEVICE_MALLOC;
     }
 
     // Copy the data from the host to the device.
@@ -145,10 +145,10 @@ int harmonic_initialize_locked_gpu(Harmonic *harmonic)
                     cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[harmonic_initialize_locked_gpu]: %s\n",
                 "Failed to copy memory from host to device for the locked cells.");
-        return INERTIA_ERROR_MEMCPY_TO_DEVICE;
+        return EPIC_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -158,12 +158,12 @@ int harmonic_uninitialize_locked_gpu(Harmonic *harmonic)
         if (cudaFree(harmonic->d_locked) != cudaSuccess) {
             fprintf(stderr, "Error[harmonic_uninitialize_locked_gpu]: %s\n",
                     "Failed to free device-side memory for the locked cells.");
-            return INERTIA_ERROR_DEVICE_FREE;
+            return EPIC_ERROR_DEVICE_FREE;
         }
     }
     harmonic->d_locked = nullptr;
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 

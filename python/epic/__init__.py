@@ -20,5 +20,5 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-__all__ = ["inertia_harmonic", "harmonic", "harmonic_map"]
+__all__ = ["epic_harmonic", "harmonic", "harmonic_map"]
 

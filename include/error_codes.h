@@ -26,17 +26,17 @@
 #define ERROR_CODES_H
 
 
-#define INERTIA_SUCCESS                         0
-#define INERTIA_SUCCESS_AND_CONVERGED           1
+#define EPIC_SUCCESS                         0
+#define EPIC_SUCCESS_AND_CONVERGED           1
 
-#define INERTIA_ERROR_INVALID_DATA              2
-#define INERTIA_ERROR_INVALID_CUDA_PARAM        3
-#define INERTIA_ERROR_DEVICE_MALLOC             4
-#define INERTIA_ERROR_MEMCPY_TO_DEVICE          5
-#define INERTIA_ERROR_MEMCPY_TO_HOST            6
-#define INERTIA_ERROR_DEVICE_FREE               7
-#define INERTIA_ERROR_KERNEL_EXECUTION          8
-#define INERTIA_ERROR_DEVICE_SYNCHRONIZE        9
+#define EPIC_ERROR_INVALID_DATA              2
+#define EPIC_ERROR_INVALID_CUDA_PARAM        3
+#define EPIC_ERROR_DEVICE_MALLOC             4
+#define EPIC_ERROR_MEMCPY_TO_DEVICE          5
+#define EPIC_ERROR_MEMCPY_TO_HOST            6
+#define EPIC_ERROR_DEVICE_FREE               7
+#define EPIC_ERROR_KERNEL_EXECUTION          8
+#define EPIC_ERROR_DEVICE_SYNCHRONIZE        9
 
 
 #endif // ERROR_CODES_H

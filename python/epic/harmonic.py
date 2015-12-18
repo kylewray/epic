@@ -28,10 +28,10 @@ import ctypes as ct
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-import inertia_harmonic as ih
+import epic_harmonic as eh
 
 
-class Harmonic(ih.InertiaHarmonic):
+class Harmonic(eh.EpicHarmonic):
     """ A Harmonic object that can be used to easily solve harmonic functions. """
 
     def __init__(self):
@@ -70,31 +70,31 @@ class Harmonic(ih.InertiaHarmonic):
 
         if algorithm == 'gauss-seidel':
             if process == 'gpu':
-                result = ih._inertia.harmonic_initialize_dimension_size_gpu(self)
-                result += ih._inertia.harmonic_initialize_potential_values_gpu(self)
-                result += ih._inertia.harmonic_initialize_locked_gpu(self)
+                result = eh._epic.harmonic_initialize_dimension_size_gpu(self)
+                result += eh._epic.harmonic_initialize_potential_values_gpu(self)
+                result += eh._epic.harmonic_initialize_locked_gpu(self)
                 if result != 0:
-                    print("Failed to initialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
+                    print("Failed to initialize the harmonic variables for the 'epic' library's GPU Gauss-Seidel solver.")
                     process = 'cpu'
 
                 timing = (time.time(), time.clock())
-                result = ih._inertia.harmonic_complete_gpu(self, int(numThreads))
+                result = eh._epic.harmonic_complete_gpu(self, int(numThreads))
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
                 if result != 0:
-                    print("Failed to execute the 'inertia' library's GPU Gauss-Seidel solver.")
+                    print("Failed to execute the 'epic' library's GPU Gauss-Seidel solver.")
                     process = 'cpu'
 
-                result = ih._inertia.harmonic_uninitialize_dimension_size_gpu(self)
-                result += ih._inertia.harmonic_uninitialize_potential_values_gpu(self)
-                result += ih._inertia.harmonic_uninitialize_locked_gpu(self)
+                result = eh._epic.harmonic_uninitialize_dimension_size_gpu(self)
+                result += eh._epic.harmonic_uninitialize_potential_values_gpu(self)
+                result += eh._epic.harmonic_uninitialize_locked_gpu(self)
                 if result != 0:
                     # Note: Failing at uninitialization should not cause the CPU version to be executed.
-                    print("Failed to uninitialize the harmonic variables for the 'inertia' library's GPU Gauss-Seidel solver.")
+                    print("Failed to uninitialize the harmonic variables for the 'epic' library's GPU Gauss-Seidel solver.")
 
             if process == 'cpu':
                 timing = (time.time(), time.clock())
-                result = ih._inertia.harmonic_complete_cpu(self)
+                result = eh._epic.harmonic_complete_cpu(self)
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
                 if result != 0:

@@ -131,7 +131,7 @@ int harmonic_complete_cpu(Harmonic *harmonic)
     if (harmonic == nullptr || harmonic->m == nullptr || harmonic->u == nullptr ||
             harmonic->locked == nullptr || harmonic->epsilon <= 0.0) {
         fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n", "Invalid data.");
-        return INERTIA_ERROR_INVALID_DATA;
+        return EPIC_ERROR_INVALID_DATA;
     }
 
     // Make sure 'information' can at least be propagated throughout the entire grid.
@@ -143,11 +143,11 @@ int harmonic_complete_cpu(Harmonic *harmonic)
     harmonic->currentIteration = 0;
     harmonic->delta = harmonic->epsilon + 1.0;
 
-    result = INERTIA_SUCCESS;
+    result = EPIC_SUCCESS;
 
-    while (result != INERTIA_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
+    while (result != EPIC_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
         result = harmonic_update_cpu(harmonic);
-        if (result != INERTIA_SUCCESS && result != INERTIA_SUCCESS_AND_CONVERGED) {
+        if (result != EPIC_SUCCESS && result != EPIC_SUCCESS_AND_CONVERGED) {
             fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n",
                             "Failed to perform the Gauss-Seidel update (and check) step.");
             return result;
@@ -161,7 +161,7 @@ int harmonic_complete_cpu(Harmonic *harmonic)
         //*/
     }
 
-    return INERTIA_SUCCESS;
+    return EPIC_SUCCESS;
 }
 
 
@@ -177,8 +177,8 @@ int harmonic_update_cpu(Harmonic *harmonic)
     harmonic->currentIteration++;
 
     if (harmonic->delta < harmonic->epsilon) {
-        return INERTIA_SUCCESS_AND_CONVERGED;
+        return EPIC_SUCCESS_AND_CONVERGED;
     } else {
-        return INERTIA_SUCCESS;
+        return EPIC_SUCCESS;
     }
 }
