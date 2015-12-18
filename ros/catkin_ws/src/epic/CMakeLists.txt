@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   nav_msgs
+  nav_core
+  costmap_2d
 )
 
 ## System dependencies are found with CMake's conventions
@@ -115,10 +117,8 @@ catkin_package(
 # Your package locations should be listed before other locations
 include_directories(include)
 
-## Declare a C++ library
-# add_library(epic
-#   src/${PROJECT_NAME}/epic.cpp
-# )
+# Declare a C++ library
+add_library(epic_plan_nav_core src/epic_plan_nav_core.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -126,14 +126,14 @@ include_directories(include)
 # add_dependencies(epic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Declare a C++ executable
-add_executable(epic_node src/epic_node.cpp)
+add_executable(epic_plan_node src/epic_plan_node.cpp)
 
 # Add cmake target dependencies of the executable
 # same as for the library above
-#add_dependencies(epic_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(epic_plan_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Specify libraries to link a library or executable target against
-target_link_libraries(epic_node
+target_link_libraries(epic_plan_node
   ${catkin_LIBRARIES}
 )
 
@@ -152,7 +152,7 @@ target_link_libraries(epic_node
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS epic epic_node
+# install(TARGETS epic epic_plan_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

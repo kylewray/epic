@@ -1,7 +1,7 @@
 <launch>
   <arg name="map_name" default="$(find epic)/maps/maze_1.yaml"/>
 
-  <include file="$(find kobuki_softapps)/launch/nav.launch"/>
+  <include file="$(find epic)/launch/epic_rviz_nav.launch"/>
 
   <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(arg map_name)">
   </node>

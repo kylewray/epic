@@ -22,8 +22,8 @@
  */
 
 
-#include "ros/ros.h"
-#include <epic/epic_node.h>
+#include <ros/ros.h>
+//#include <epic/epic_plan_node.h>
 
 
 int main(int argc, char **argv)
