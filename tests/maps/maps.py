@@ -31,11 +31,11 @@ from epic.harmonic_map import *
 
 
 images = [
-          {'name': "Basic", 'filename': os.path.join(thisFilePath, "images/basic.png")},
-          {'name': "C-Space", 'filename': os.path.join(thisFilePath, "images/c_space.png")},
-          {'name': "Maze 1", 'filename': os.path.join(thisFilePath, "images/maze_1.png")},
-          {'name': "Maze 2", 'filename': os.path.join(thisFilePath, "images/maze_2.png")},
-          {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "images/maze_3.png")},
+          {'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
+          {'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
+          {'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
+          {'name': "Maze 2", 'filename': os.path.join(thisFilePath, "maze_2.png")},
+          {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
          ]
 
 precisions = [1e-1, 1e-2, 1e-3]
