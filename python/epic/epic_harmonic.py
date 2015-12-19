@@ -33,10 +33,10 @@ import os.path
 _epic = None
 if platform.system() == "Windows":
     _ = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "epic.dll"))
+                    "..", "..", "lib", "libepic.dll"))
 else:
     _epic = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "epic.so"))
+                    "..", "..", "lib", "libepic.so"))
 
 
 class EpicHarmonic(ct.Structure):

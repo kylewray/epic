@@ -115,7 +115,15 @@ catkin_package(
 
 # Specify additional locations of header files
 # Your package locations should be listed before other locations
-include_directories(include)
+include_directories(
+  include
+  ../../../../include
+  #/home/axiom/Development/epic/include
+)
+
+# Also include link directories...
+link_directories(../../../../lib)
+#link_directories(/home/axiom/Development/epic/lib)
 
 # Declare a C++ library
 add_library(epic_plan_nav_core src/epic_plan_nav_core.cpp)
@@ -135,6 +143,7 @@ add_executable(epic_plan_node src/epic_plan_node.cpp)
 # Specify libraries to link a library or executable target against
 target_link_libraries(epic_plan_node
   ${catkin_LIBRARIES}
+  epic
 )
 
 #############

@@ -34,25 +34,197 @@ using namespace std;
 namespace epic_plan {
 
 
-EpicPlanNavCore::EpicPlanNavCore() //: costmap_ros_(NULL), initialized_(false)
-{ }
-
-
-EpicPlanNavCore::EpicPlanNavCore(std::string name,
-    costmap_2d::Costmap2DROS *costmap)
-    //: costmap_ros_(NULL), initialized_(false)
+EpicPlanNavCore::EpicPlanNavCore()
 {
-    initialize(name, costmap);
+    costmap = NULL;
+    initialized = false;
+
+    harmonic.n = 0;
+    harmonic.m = NULL;
+    harmonic.u = NULL;
+    harmonic.locked = NULL;
 }
 
 
-void EpicPlanNavCore::initialize(std::string name, costmap_2d::Costmap2DROS *costmap)
-{ }
+EpicPlanNavCore::EpicPlanNavCore(std::string name,
+        costmap_2d::Costmap2DROS *costmapROS)
+{
+    costmap = NULL;
+    initialized = false;
+
+    harmonic.n = 0;
+    harmonic.m = NULL;
+    harmonic.u = NULL;
+    harmonic.locked = NULL;
+
+    initialize(name, costmapROS);
+}
+
+
+EpicPlanNavCore::~EpicPlanNavCore()
+{
+    uninitialize();
+
+    costmap = NULL;
+    initialized = false;
+}
+
+
+void EpicPlanNavCore::initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS)
+{
+    if (name.length() == 0 || costmapROS == NULL) {
+        ROS_ERROR("Error[EpicPlanNavCore::initialize]: Costmap2DROS object is not initialized.");
+        return;
+    }
+
+    ROS_WARN("Initializing...");
+
+    uninitialize();
+
+    costmap = costmapROS->getCostmap();
+
+    //ROS_WARN("%i", costmap->getSizeInCellsX());
+    //ROS_WARN("%i", costmap->getSizeInCellsY());
+
+    harmonic.n = 2;
+    harmonic.m = new unsigned int[2];
+    harmonic.m[0] = costmap->getSizeInCellsX();
+    harmonic.m[1] = costmap->getSizeInCellsY();
+
+    harmonic.u = new float[costmap->getSizeInCellsX() * costmap->getSizeInCellsY()];
+    harmonic.locked = new unsigned int[costmap->getSizeInCellsX() * costmap->getSizeInCellsY()];
+
+    setBoundariesAsObstacles();
+
+    initialized = true;
+
+    ROS_WARN("Done.");
+}
+
+
+void EpicPlanNavCore::setCellsFromCostmap()
+{
+    if (costmap == NULL) {
+        ROS_ERROR("Error[EpicPlanNavCore::setCellsFromCostmap]: Costmap2D object is not initialized.");
+        return;
+    }
+
+    if (harmonic.m == NULL || harmonic.u == NULL || harmonic.locked == NULL) {
+        ROS_ERROR("Error[EpicPlanNavCore::setCellsFromCostmap]: Harmonic object is not initialized.");
+        return;
+    }
+
+    // Assign all obstacles and free space. `Goals' (cells with cost 0) become free space.
+    // Note that this does not go over the boundary; it is guaranteed to be an obstacle.
+    for (unsigned int x = 1; x < harmonic.m[0] - 1; x++) {
+        for (unsigned int y = 1; y < harmonic.m[1] - 1; y++) {
+            if (costmap->getCost(x, y) == 100) {
+                harmonic.u[x * harmonic.m[1] + y] = 1.0f;
+                harmonic.locked[x * harmonic.m[1] + y] = 1;
+            } else {
+                harmonic.u[x * harmonic.m[1] + y] = 1.0f;
+                harmonic.locked[x * harmonic.m[1] + y] = 0;
+            }
+        }
+    }
+}
+
+
+void EpicPlanNavCore::setBoundariesAsObstacles()
+{
+    if (harmonic.m == NULL || harmonic.u == NULL || harmonic.locked == NULL) {
+        ROS_ERROR("Error[EpicPlanNavCore::setBoundariesAsObstacles]: Harmonic object is not initialized.");
+        return;
+    }
+
+    for (unsigned int x = 0; x < harmonic.m[0]; x++) {
+        harmonic.u[x * harmonic.m[1] + 0] = 1.0f;
+        harmonic.locked[x * harmonic.m[1] + 0] = 1;
+        harmonic.u[x * harmonic.m[1] + (harmonic.m[1] - 1)] = 1.0f;
+        harmonic.locked[x * harmonic.m[1] + (harmonic.m[1] - 1)] = 1;
+    }
+
+    for (unsigned int y = 0; y < harmonic.m[1]; y++) {
+        harmonic.u[0 * harmonic.m[1] + y] = 1.0f;
+        harmonic.locked[0 * harmonic.m[1] + y] = 1;
+        harmonic.u[(harmonic.m[0] - 1) * harmonic.m[1] + y] = 1.0f;
+        harmonic.locked[(harmonic.m[0] - 1) * harmonic.m[1] + y] = 1;
+    }
+}
+
+
+void EpicPlanNavCore::uninitialize()
+{
+    ROS_WARN("Uninitializing...");
+
+    if (harmonic.u != NULL) {
+        delete [] harmonic.u;
+    }
+    harmonic.u = NULL;
+
+    if (harmonic.locked != NULL) {
+        delete [] harmonic.locked;
+    }
+    harmonic.locked = NULL;
+
+    if (harmonic.m != NULL) {
+        delete [] harmonic.m;
+    }
+    harmonic.m = NULL;
+
+    harmonic.n = 0;
+
+    ROS_WARN("Done.");
+}
+
 
 bool EpicPlanNavCore::makePlan(const geometry_msgs::PoseStamped &start,
         const geometry_msgs::PoseStamped &goal,
         std::vector<geometry_msgs::PoseStamped> &plan)
 {
+    ROS_WARN("Making plan...");
+
+    if (!initialized) {
+        ROS_ERROR("Error[EpicPlanNavCore::makePlan]: EpicPathNavCore has not been initialized yet.");
+        return false;
+    }
+
+    // Set the goal location on the potential map.
+    unsigned int xCoord = 0;
+    unsigned int yCoord = 0;
+
+    if (!costmap->worldToMap(goal.pose.position.x, goal.pose.position.y, xCoord, yCoord)) {
+        ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Could not convert goal to cost map location.");
+        xCoord = 0;
+        yCoord = 0;
+    }
+
+    setGoal(xCoord, yCoord);
+
+    ROS_WARN("Set goal.");
+
+    // Copy everything to the GPU's memory.
+    harmonic_initialize_dimension_size_gpu(&harmonic);
+    harmonic_initialize_potential_values_gpu(&harmonic);
+    harmonic_initialize_locked_gpu(&harmonic);
+    harmonic_initialize_gpu(&harmonic, 1024);
+
+    ROS_WARN("Setup GPU.");
+
+    ROS_WARN("STARTING HARMONIC EPIC!");
+    harmonic_complete_gpu(&harmonic, 1024);
+    ROS_WARN("DONE HARMONIC EPIC!");
+
+
+    ROS_WARN("Solved!");
+
+    // Free everything on the GPU's memory.
+    harmonic_uninitialize_dimension_size_gpu(&harmonic);
+    harmonic_uninitialize_potential_values_gpu(&harmonic);
+    harmonic_uninitialize_locked_gpu(&harmonic);
+    harmonic_uninitialize_gpu(&harmonic);
+
+    ROS_WARN("Free.");
 
     plan.push_back(start);
        for (int i=0; i<20; i++){
@@ -70,7 +242,36 @@ bool EpicPlanNavCore::makePlan(const geometry_msgs::PoseStamped &start,
                                                         plan.push_back(new_goal);
                                                            }
                                                               plan.push_back(goal);
+                                                              ROS_WARN("Done.");
                                                                 return true;
+}
+
+
+void EpicPlanNavCore::setGoal(unsigned int xGoal, unsigned int yGoal)
+{
+    if (!initialized) {
+        ROS_ERROR("Error[EpicPlanNavCore::setGoal]: EpicPathNavCore has not been initialized yet.");
+        return;
+    }
+
+    if (harmonic.m == NULL || harmonic.u == NULL || harmonic.locked == NULL) {
+        ROS_ERROR("Error[EpicPlanNavCore::setBoundariesAsObstacles]: Harmonic object is not initialized.");
+        return;
+    }
+
+    // All current goals become free cells. Boundaries are always obstacles.
+    for (unsigned int x = 1; x < harmonic.m[0] - 1; x++) {
+        for (unsigned int y = 1; y < harmonic.m[1] - 1; y++) {
+            if (harmonic.u[x * harmonic.m[1] + y] == 0.0f) {
+                harmonic.u[x * harmonic.m[1] + y] = 1.0f;
+                harmonic.locked[x * harmonic.m[1] + y] = 0;
+            }
+        }
+    }
+
+    // The point provided is in cell-coordinates, so assign it!
+    harmonic.u[xGoal * harmonic.m[1] + yGoal] = 0.0f;
+    harmonic.locked[xGoal * harmonic.m[1] + yGoal] = 1;
 }
 
 

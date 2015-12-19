@@ -5,8 +5,8 @@ all: epic
 
 epic: harmonic_gpu.o harmonic_cpu.o
 	mkdir -p lib
-	$(COMMAND) $(FLAGS) obj/*.o -o epic.so
-	mv epic.so lib
+	$(COMMAND) $(FLAGS) obj/*.o -o libepic.so
+	mv libepic.so lib
 
 harmonic_gpu.o: src/harmonic/*.cu
 	mkdir -p obj

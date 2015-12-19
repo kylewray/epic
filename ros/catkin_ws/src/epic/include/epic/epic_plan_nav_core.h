@@ -35,8 +35,10 @@
 
 #include <angles/angles.h>
 
-//#include <base_local_planner/world_model.h>
-//#include <base_local_planner/costmap_model.h>
+#include <harmonic/harmonic.h>
+#include <harmonic/harmonic_cpu.h>
+#include <harmonic/harmonic_gpu.h>
+#include <harmonic/harmonic_model_gpu.h>
 
 
 using std::string;
@@ -56,14 +58,35 @@ namespace epic_plan {
          *  @param  name    The name of the planner.
          *  @param  costmap The cost map to solve.
          */
-        EpicPlanNavCore(std::string name, costmap_2d::Costmap2DROS *costmap);
+        EpicPlanNavCore(std::string name, costmap_2d::Costmap2DROS *costmapROS);
+
+
+        /**
+         *  The deconstructor for the EpicPlanNavCore used by the plugin.
+         */
+        virtual ~EpicPlanNavCore();
 
         /**
          *  Initialize the plugin class EpicPlanNavCore. Overloads from nav_core::BaseGlobalPlanner.
          *  @param  name    The name of the planner.
          *  @param  costmap The cost map to solve.
          */
-        void initialize(std::string name, costmap_2d::Costmap2DROS *costmap);
+        void initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS);
+
+        /**
+         *  Set harmonic cell potential values from the cost map, assuming both have been defined.
+         */
+        void setCellsFromCostmap();
+
+        /**
+         *  Set the boundaries as obstacles, provided the harmonic function has been defined.
+         */
+        void setBoundariesAsObstacles();
+
+        /**
+         *  Uninitialize the plugin class EpicPlanNavCore.
+         */
+        void uninitialize();
 
         /**
          *  Make the plan for plugin EpicPlanNavCore. Overloads from nav_core::BaseGlobalPlanner.
@@ -76,6 +99,22 @@ namespace epic_plan {
                 const geometry_msgs::PoseStamped &goal,
                 std::vector<geometry_msgs::PoseStamped> &plan);
 
+        /**
+         *  Set the goal given an (x, y) location on the cell map.
+         *  @param  xGoal   The x location.
+         *  @param  yGoal   The y location.
+         */
+        void setGoal(unsigned int xGoal, unsigned int yGoal);
+
+    private:
+        // The Harmonic struct which holds the potential values for the 'epic' library.
+        Harmonic harmonic;
+
+        // The costmap object.
+        costmap_2d::Costmap2D *costmap;
+
+        // If this object has been properly initialized or not.
+        bool initialized;
     };
 };
 

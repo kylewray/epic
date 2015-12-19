@@ -31,9 +31,9 @@ from epic.harmonic_map import *
 
 
 images = [
-          {'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
-          {'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
-          {'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
+          #{'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
+          #{'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
+          #{'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
           {'name': "Maze 2", 'filename': os.path.join(thisFilePath, "maze_2.png")},
           {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
          ]
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             harmonicMap.load(img['filename'])
             #harmonicMap.show()
 
-            timing = harmonicMap.solve(process='gpu', epsilon=1e-1)
+            timing = harmonicMap.solve(process='gpu', epsilon=1e-2)
             harmonicMap.show()
 
         elif sys.argv[1] == 'batch':
