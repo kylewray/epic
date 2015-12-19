@@ -146,6 +146,11 @@ target_link_libraries(epic_plan_node
   epic
 )
 
+target_link_libraries(epic_plan_nav_core
+  ${catkin_LIBRARIES}
+  epic
+)
+
 #############
 ## Install ##
 #############

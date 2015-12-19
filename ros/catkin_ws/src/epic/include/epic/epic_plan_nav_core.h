@@ -36,9 +36,6 @@
 #include <angles/angles.h>
 
 #include <harmonic/harmonic.h>
-#include <harmonic/harmonic_cpu.h>
-#include <harmonic/harmonic_gpu.h>
-#include <harmonic/harmonic_model_gpu.h>
 
 
 using std::string;
@@ -74,16 +71,6 @@ namespace epic_plan {
         void initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS);
 
         /**
-         *  Set harmonic cell potential values from the cost map, assuming both have been defined.
-         */
-        void setCellsFromCostmap();
-
-        /**
-         *  Set the boundaries as obstacles, provided the harmonic function has been defined.
-         */
-        void setBoundariesAsObstacles();
-
-        /**
          *  Uninitialize the plugin class EpicPlanNavCore.
          */
         void uninitialize();
@@ -107,11 +94,38 @@ namespace epic_plan {
         void setGoal(unsigned int xGoal, unsigned int yGoal);
 
     private:
+        /**
+         *  Set harmonic cell potential values from the cost map, assuming both have been defined.
+         */
+        void setCellsFromCostmap();
+
+        /**
+         *  Set the boundaries as obstacles, provided the harmonic function has been defined.
+         */
+        void setBoundariesAsObstacles();
+
+        void computeCellIndex(float x, float y,
+                unsigned int &xCellIndex, unsigned int &yCellIndex);
+
+        void mapToWorld(float mx, float my, float &wx, float &wy) const;
+
+        void worldToMap(float wx, float wy, float &mx, float &my) const;
+
+        float computePotential(float x, float y);
+
+        void publishPlan(const std::vector<geometry_msgs::PoseStamped> &path);
+
         // The Harmonic struct which holds the potential values for the 'epic' library.
         Harmonic harmonic;
 
         // The costmap object.
         costmap_2d::Costmap2D *costmap;
+
+        // We will publish the plan so that the stupid nav_core doesn't truncate it.
+        ros::Publisher pubPlan;
+
+        // Also publish the potential.
+        ros::Publisher pubPotential;
 
         // If this object has been properly initialized or not.
         bool initialized;

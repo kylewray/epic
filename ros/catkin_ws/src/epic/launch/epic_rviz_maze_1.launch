@@ -6,6 +6,6 @@
   <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(arg map_name)">
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find kobuki_softapps)/rviz/nav.rviz"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find epic)/rviz/default.rviz"/>
 </launch>
 
