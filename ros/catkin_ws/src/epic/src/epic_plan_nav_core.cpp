@@ -224,20 +224,20 @@ float EpicPlanNavCore::computePotential(float x, float y)
         return 0.0f;
     }
 
-    unsigned int xtl = (unsigned int)(x - 0.5f * costmap->getResolution());
-    unsigned int ytl = (unsigned int)(y - 0.5f * costmap->getResolution());
+    unsigned int xtl = (unsigned int)(x - 0.5f); // * costmap->getResolution());
+    unsigned int ytl = (unsigned int)(y - 0.5f); // * costmap->getResolution());
 
-    unsigned int xtr = (unsigned int)(x + 0.5f * costmap->getResolution());
-    unsigned int ytr = (unsigned int)(y - 0.5f * costmap->getResolution());
+    unsigned int xtr = (unsigned int)(x + 0.5f); // * costmap->getResolution());
+    unsigned int ytr = (unsigned int)(y - 0.5f); // * costmap->getResolution());
 
-    unsigned int xbl = (unsigned int)(x - 0.5f * costmap->getResolution());
-    unsigned int ybl = (unsigned int)(y + 0.5f * costmap->getResolution());
+    unsigned int xbl = (unsigned int)(x - 0.5f); // * costmap->getResolution());
+    unsigned int ybl = (unsigned int)(y + 0.5f); // * costmap->getResolution());
 
-    unsigned int xbr = (unsigned int)(x + 0.5f * costmap->getResolution());
-    unsigned int ybr = (unsigned int)(y + 0.5f * costmap->getResolution());
+    unsigned int xbr = (unsigned int)(x + 0.5f); // * costmap->getResolution());
+    unsigned int ybr = (unsigned int)(y + 0.5f); // * costmap->getResolution());
 
-    float alpha = (x - xtl) / costmap->getResolution();
-    float beta = (y - ytl) / costmap->getResolution();
+    float alpha = (x - xtl); // / costmap->getResolution();
+    float beta = (y - ytl); // / costmap->getResolution();
 
     float one = (1.0f - alpha) * harmonic.u[ytl * harmonic.m[1] + xtl] +
                 alpha * harmonic.u[ytr * harmonic.m[1] + xtr];
@@ -264,11 +264,18 @@ void EpicPlanNavCore::mapToWorld(float mx, float my, float &wx, float &wy) const
 }
 
 
-void EpicPlanNavCore::worldToMap(float wx, float wy, float &mx, float &my) const
+bool EpicPlanNavCore::worldToMap(float wx, float wy, float &mx, float &my) const
 {
-    // TODO: Put checks like costmap_2d.
+    if (wx < costmap->getOriginX() || wy < costmap->getOriginY() ||
+            wx >= costmap->getSizeInMetersX() || wy >= costmap->getSizeInMetersY()) {
+        ROS_WARN("Error[EpicPlanNavCore::worldToMap]: World coordinates are outside map.");
+        return true;
+    }
+
     mx = (wx - costmap->getOriginX()) / costmap->getResolution();
     my = (wy - costmap->getOriginY()) / costmap->getResolution();
+
+    return false;
 }
 
 

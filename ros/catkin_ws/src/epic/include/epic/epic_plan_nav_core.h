@@ -104,15 +104,47 @@ namespace epic_plan {
          */
         void setBoundariesAsObstacles();
 
+        /**
+         *  Compute the cell indexes given coordinates in float-
+         *  @param  x           The x coordinate in float-index form (completely adjusted).
+         *  @param  y           The y coordinate in float-index form (completely adjusted).
+         *  @param  xCellIndex  The resultant x cell index. This will be modified.
+         *  @param  yCellIndex  The resultant y cell index. This will be modified.
+         */
         void computeCellIndex(float x, float y,
                 unsigned int &xCellIndex, unsigned int &yCellIndex);
 
+        /**
+         *  Convert the float-index map coordinate to the world coordinate.
+         *  @param  mx      The float-index map x coordinate.
+         *  @param  my      The float-index map y coordinate.
+         *  @param  wx      The resultant world x coordinate. This will be modified.
+         *  @param  wy      The resultant world y coordinate. This will be modified.
+         */
         void mapToWorld(float mx, float my, float &wx, float &wy) const;
 
-        void worldToMap(float wx, float wy, float &mx, float &my) const;
+        /**
+         *  Covert the world coordinate to the float-index map coordinate.
+         *  @param  wx      The world x coordinate.
+         *  @param  wy      The world y coordinate.
+         *  @param  mx      The resultant float-index map x coordinate. This will be modified.
+         *  @param  my      The resultant float-index map y coordinate. This will be modified.
+         *  @return True if the world coordinate is outside the map, false otherwise.
+         */
+        bool worldToMap(float wx, float wy, float &mx, float &my) const;
 
+        /**
+         *  Compute the potential at the float-index map coordinate provided.
+         *  @param  x       The float-index map x coordinate.
+         *  @param  y       The float-index map y coordinate.
+         *  @return The potential at this float-index map coordinate.
+         */
         float computePotential(float x, float y);
 
+        /**
+         *  Publish the plan as a path for use in path followers and visualization.
+         *  @param  path    The path to be published.
+         */
         void publishPlan(const std::vector<geometry_msgs::PoseStamped> &path);
 
         // The Harmonic struct which holds the potential values for the 'epic' library.
