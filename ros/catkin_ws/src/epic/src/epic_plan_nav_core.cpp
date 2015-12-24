@@ -303,18 +303,18 @@ bool EpicPlanNavCore::makePlan(const geometry_msgs::PoseStamped &start,
 
     setGoal(xCoord, yCoord);
 
-    ROS_INFO("Solving harmonic function...");
+    ROS_INFO("Information[EpicPlanNavCore::makePlan]: Solving harmonic function...");
     int result = harmonic_complete_gpu(&harmonic, 1024);
 
     if (result != EPIC_SUCCESS) {
         ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Could not execute GPU version of 'epic' library.");
-        ROS_INFO("Warning[EpicPlanNavCore::makePlan]: Trying CPU fallback...");
+        ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Trying CPU fallback...");
 
         result = harmonic_complete_cpu(&harmonic);
     }
 
     if (result == EPIC_SUCCESS) {
-        ROS_INFO("Successfully solved harmonic function!");
+        ROS_INFO("Information[EpicPlanNavCore::makePlan]: Successfully solved harmonic function!");
     } else {
         ROS_ERROR("Error[EpicPlanNavCore::makePlan]: Failed to solve harmonic function.");
         return false;
