@@ -169,9 +169,10 @@ int harmonic_update_cpu(Harmonic *harmonic)
 {
     if (harmonic->n == 2) {
         harmonic_update_2d_cpu(harmonic);
-        harmonic_update_3d_cpu(harmonic);
     } else if (harmonic->n == 3) {
+        harmonic_update_3d_cpu(harmonic);
     } else if (harmonic->n == 4) {
+        //harmonic_update_4d_cpu(harmonic);
     }
 
     harmonic->currentIteration++;
