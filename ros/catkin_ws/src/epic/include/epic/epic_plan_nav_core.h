@@ -129,7 +129,7 @@ namespace epic_plan {
          *  @param  wy      The world y coordinate.
          *  @param  mx      The resultant float-index map x coordinate. This will be modified.
          *  @param  my      The resultant float-index map y coordinate. This will be modified.
-         *  @return True if the world coordinate is outside the map, false otherwise.
+         *  @return True if the world coordinate is inside the map, false otherwise.
          */
         bool worldToMap(float wx, float wy, float &mx, float &my) const;
 

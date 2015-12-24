@@ -34,6 +34,9 @@
 #include <harmonic/harmonic_gpu.h>
 #include <harmonic/harmonic_model_gpu.h>
 
+//#include <constants.h>
+#define EPIC_SUCCESS 0
+
 #include <stdio.h>
 
 PLUGINLIB_EXPORT_CLASS(epic_plan::EpicPlanNavCore, nav_core::BaseGlobalPlanner)
@@ -269,13 +272,13 @@ bool EpicPlanNavCore::worldToMap(float wx, float wy, float &mx, float &my) const
     if (wx < costmap->getOriginX() || wy < costmap->getOriginY() ||
             wx >= costmap->getSizeInMetersX() || wy >= costmap->getSizeInMetersY()) {
         ROS_WARN("Error[EpicPlanNavCore::worldToMap]: World coordinates are outside map.");
-        return true;
+        return false;
     }
 
     mx = (wx - costmap->getOriginX()) / costmap->getResolution();
     my = (wy - costmap->getOriginY()) / costmap->getResolution();
 
-    return false;
+    return true;
 }
 
 
@@ -300,16 +303,33 @@ bool EpicPlanNavCore::makePlan(const geometry_msgs::PoseStamped &start,
 
     setGoal(xCoord, yCoord);
 
-    ROS_WARN("Solving harmonic function...");
-    harmonic_complete_gpu(&harmonic, 1024);
-    ROS_WARN("Done!");
+    ROS_INFO("Solving harmonic function...");
+    int result = harmonic_complete_gpu(&harmonic, 1024);
+
+    if (result != EPIC_SUCCESS) {
+        ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Could not execute GPU version of 'epic' library.");
+        ROS_INFO("Warning[EpicPlanNavCore::makePlan]: Trying CPU fallback...");
+
+        result = harmonic_complete_cpu(&harmonic);
+    }
+
+    if (result == EPIC_SUCCESS) {
+        ROS_INFO("Successfully solved harmonic function!");
+    } else {
+        ROS_ERROR("Error[EpicPlanNavCore::makePlan]: Failed to solve harmonic function.");
+        return false;
+    }
 
     //pubPotential.publish(harmonic.u);
 
     plan.clear();
     plan.push_back(start);
 
-    costmap->worldToMap(start.pose.position.x, start.pose.position.y, xCoord, yCoord);
+    if (!costmap->worldToMap(start.pose.position.x, start.pose.position.y, xCoord, yCoord)) {
+        ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Could not convert start to cost map location.");
+        xCoord = 0;
+        yCoord = 0;
+    }
 
     //xCellIndex, yCellIndex = self._compute_cell_index(x, y)
 
@@ -322,7 +342,9 @@ bool EpicPlanNavCore::makePlan(const geometry_msgs::PoseStamped &start,
 
     float x = 0.0f;
     float y = 0.0f;
-    worldToMap(start.pose.position.x, start.pose.position.y, x, y);
+    if (!worldToMap(start.pose.position.x, start.pose.position.y, x, y)) {
+        ROS_WARN("Warning[EpicPlanNavCore::makePlan]: Could not convert start to floating point cost map location.");
+    }
 
     geometry_msgs::PoseStamped newGoal = goal;
 
