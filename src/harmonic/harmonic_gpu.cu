@@ -34,6 +34,8 @@
 #include <cmath>
 
 
+namespace epic {
+
 __global__ void harmonic_update_2d_gpu(unsigned int *m, float *u, unsigned int *locked, unsigned int currentIteration)
 {
     for (unsigned int x0 = blockIdx.x; x0 < m[0]; x0 += gridDim.x) {
@@ -434,4 +436,6 @@ int harmonic_get_potential_values_gpu(Harmonic *harmonic)
 
     return EPIC_SUCCESS;
 }
+
+}; // namespace epic
 

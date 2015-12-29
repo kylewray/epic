@@ -26,17 +26,25 @@
 #define ERROR_CODES_H
 
 
-#define EPIC_SUCCESS                         0
-#define EPIC_SUCCESS_AND_CONVERGED           1
+namespace epic {
 
-#define EPIC_ERROR_INVALID_DATA              2
-#define EPIC_ERROR_INVALID_CUDA_PARAM        3
-#define EPIC_ERROR_DEVICE_MALLOC             4
-#define EPIC_ERROR_MEMCPY_TO_DEVICE          5
-#define EPIC_ERROR_MEMCPY_TO_HOST            6
-#define EPIC_ERROR_DEVICE_FREE               7
-#define EPIC_ERROR_KERNEL_EXECUTION          8
-#define EPIC_ERROR_DEVICE_SYNCHRONIZE        9
+#define EPIC_SUCCESS                        0
+#define EPIC_SUCCESS_AND_CONVERGED          1
+
+#define EPIC_ERROR_INVALID_DATA             2
+#define EPIC_ERROR_INVALID_CUDA_PARAM       3
+#define EPIC_ERROR_DEVICE_MALLOC            4
+#define EPIC_ERROR_MEMCPY_TO_DEVICE         5
+#define EPIC_ERROR_MEMCPY_TO_HOST           6
+#define EPIC_ERROR_DEVICE_FREE              7
+#define EPIC_ERROR_KERNEL_EXECUTION         8
+#define EPIC_ERROR_DEVICE_SYNCHRONIZE       9
+
+#define EPIC_ERROR_INVALID_LOCATION         10
+#define EPIC_ERROR_INVALID_CELL_TYPE        11
+#define EPIC_ERROR_INVALID_GRADIENT         12
+
+};
 
 
 #endif // ERROR_CODES_H

@@ -26,6 +26,10 @@
 #define HARMONIC_GPU_H
 
 
+#include "harmonic.h"
+
+namespace epic {
+
 /**
  *  Execute a Gauss-Seidel harmonic function solver until convergence. Uses the GPU (CUDA).
  *  @param  harmonic    The Harmonic object.
@@ -80,6 +84,8 @@ extern "C" int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int nu
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int harmonic_get_potential_values_gpu(Harmonic *harmonic);
+
+};
 
 
 #endif // HARMONIC_GPU_H

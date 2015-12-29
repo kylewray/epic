@@ -33,9 +33,13 @@
 #include <cmath>
 
 
-void harmonic_update_2d_cpu(Harmonic *harmonic)
+namespace epic {
+
+void harmonic_update_2d_cpu(Harmonic *harmonic, bool checkConvergence)
 {
-    harmonic->delta = 0.0;
+    if (checkConvergence) {
+        harmonic->delta = 0.0;
+    }
 
     // Iterate over all non-boundary cells and update its value based on a red-black ordering.
     // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
@@ -66,15 +70,19 @@ void harmonic_update_2d_cpu(Harmonic *harmonic)
                                                     std::log(2.0 * harmonic->n);
 
             // Compute the updated delta.
-            harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
+            if (checkConvergence) {
+                harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] + x1]));
+            }
         }
     }
 }
 
 
-void harmonic_update_3d_cpu(Harmonic *harmonic)
+void harmonic_update_3d_cpu(Harmonic *harmonic, bool checkConvergence)
 {
-    harmonic->delta = 0.0;
+    if (checkConvergence) {
+        harmonic->delta = 0.0;
+    }
 
     // Iterate over all non-boundary cells and update its value based on a red-black ordering.
     // Thus, for all rows, we either skip by evens or odds in 2-dimensions.
@@ -116,7 +124,9 @@ void harmonic_update_3d_cpu(Harmonic *harmonic)
                                                         std::log(2.0 * harmonic->n);
 
                 // Compute the updated delta.
-                harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]));
+                if (checkConvergence) {
+                    harmonic->delta = std::max(harmonic->delta, (float)fabs(uPrevious - harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]));
+                }
             }
         }
     }
@@ -168,11 +178,27 @@ int harmonic_complete_cpu(Harmonic *harmonic)
 int harmonic_update_cpu(Harmonic *harmonic)
 {
     if (harmonic->n == 2) {
-        harmonic_update_2d_cpu(harmonic);
+        harmonic_update_2d_cpu(harmonic, false);
     } else if (harmonic->n == 3) {
-        harmonic_update_3d_cpu(harmonic);
+        harmonic_update_3d_cpu(harmonic, false);
     } else if (harmonic->n == 4) {
-        //harmonic_update_4d_cpu(harmonic);
+        //harmonic_update_4d_cpu(harmonic, false);
+    }
+
+    harmonic->currentIteration++;
+
+    return EPIC_SUCCESS;
+}
+
+
+int harmonic_update_and_check_cpu(Harmonic *harmonic)
+{
+    if (harmonic->n == 2) {
+        harmonic_update_2d_cpu(harmonic, true);
+    } else if (harmonic->n == 3) {
+        harmonic_update_3d_cpu(harmonic, true);
+    } else if (harmonic->n == 4) {
+        //harmonic_update_4d_cpu(harmonic, true);
     }
 
     harmonic->currentIteration++;
@@ -183,3 +209,6 @@ int harmonic_update_cpu(Harmonic *harmonic)
         return EPIC_SUCCESS;
     }
 }
+
+}; // namespace epic
+

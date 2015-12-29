@@ -22,8 +22,8 @@
  */
 
 
-#ifndef EPIC_PLAN_NAV_CORE_H
-#define EPIC_PLAN_NAV_CORE_H
+#ifndef EPIC_NAV_CORE_PLUGIN_H
+#define EPIC_NAV_CORE_PLUGIN_H
 
 
 #include <ros/ros.h>
@@ -37,46 +37,45 @@
 
 #include <harmonic/harmonic.h>
 
-
 using std::string;
 
 
-namespace epic_plan {
+namespace epic {
 
-    class EpicPlanNavCore : public nav_core::BaseGlobalPlanner {
+    class EpicNavCorePlugin : public nav_core::BaseGlobalPlanner {
     public:
         /**
-         *  The default constructor for the EpicPlanNavCore.
+         *  The default constructor for the EpicNavCorePlugin.
          */
-        EpicPlanNavCore();
+        EpicNavCorePlugin();
 
         /**
-         *  The constructor for the EpicPlanNavCore used by the plugin.
+         *  The constructor for the EpicNavCorePlugin used by the plugin.
          *  @param  name    The name of the planner.
          *  @param  costmap The cost map to solve.
          */
-        EpicPlanNavCore(std::string name, costmap_2d::Costmap2DROS *costmapROS);
+        EpicNavCorePlugin(std::string name, costmap_2d::Costmap2DROS *costmapROS);
 
 
         /**
-         *  The deconstructor for the EpicPlanNavCore used by the plugin.
+         *  The deconstructor for the EpicNavCorePlugin used by the plugin.
          */
-        virtual ~EpicPlanNavCore();
+        virtual ~EpicNavCorePlugin();
 
         /**
-         *  Initialize the plugin class EpicPlanNavCore. Overloads from nav_core::BaseGlobalPlanner.
+         *  Initialize the plugin class EpicNavCorePlugin. Overloads from nav_core::BaseGlobalPlanner.
          *  @param  name    The name of the planner.
          *  @param  costmap The cost map to solve.
          */
         void initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS);
 
         /**
-         *  Uninitialize the plugin class EpicPlanNavCore.
+         *  Uninitialize the plugin class EpicNavCorePlugin.
          */
         void uninitialize();
 
         /**
-         *  Make the plan for plugin EpicPlanNavCore. Overloads from nav_core::BaseGlobalPlanner.
+         *  Make the plan for plugin EpicNavCorePlugin. Overloads from nav_core::BaseGlobalPlanner.
          *  @param  start   The starting (x, y) location in the cost map.
          *  @param  goal    The goal (x, y) location in the cost map.
          *  @param  plan    The resulting plan as a sequence of (x, y) waypoints.
@@ -105,16 +104,6 @@ namespace epic_plan {
         void setBoundariesAsObstacles();
 
         /**
-         *  Compute the cell indexes given coordinates in float-
-         *  @param  x           The x coordinate in float-index form (completely adjusted).
-         *  @param  y           The y coordinate in float-index form (completely adjusted).
-         *  @param  xCellIndex  The resultant x cell index. This will be modified.
-         *  @param  yCellIndex  The resultant y cell index. This will be modified.
-         */
-        void computeCellIndex(float x, float y,
-                unsigned int &xCellIndex, unsigned int &yCellIndex);
-
-        /**
          *  Convert the float-index map coordinate to the world coordinate.
          *  @param  mx      The float-index map x coordinate.
          *  @param  my      The float-index map y coordinate.
@@ -132,14 +121,6 @@ namespace epic_plan {
          *  @return True if the world coordinate is inside the map, false otherwise.
          */
         bool worldToMap(float wx, float wy, float &mx, float &my) const;
-
-        /**
-         *  Compute the potential at the float-index map coordinate provided.
-         *  @param  x       The float-index map x coordinate.
-         *  @param  y       The float-index map y coordinate.
-         *  @return The potential at this float-index map coordinate.
-         */
-        float computePotential(float x, float y);
 
         /**
          *  Publish the plan as a path for use in path followers and visualization.
@@ -165,5 +146,5 @@ namespace epic_plan {
 };
 
 
-#endif // EPIC_PLAN_NAV_CORE_H
+#endif // EPIC_NAV_CORE_PLUGIN_H
 

@@ -23,7 +23,7 @@
 
 
 #include <ros/ros.h>
-//#include <epic/epic_plan_node.h>
+//#include <epic/epic_navigation_node.h>
 
 
 int main(int argc, char **argv)

@@ -126,7 +126,7 @@ link_directories(../../../../lib)
 #link_directories(/home/axiom/Development/epic/lib)
 
 # Declare a C++ library
-add_library(epic_plan_nav_core src/epic_plan_nav_core.cpp)
+add_library(epic_nav_core_plugin src/epic_nav_core_plugin.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -134,19 +134,19 @@ add_library(epic_plan_nav_core src/epic_plan_nav_core.cpp)
 # add_dependencies(epic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Declare a C++ executable
-add_executable(epic_plan_node src/epic_plan_node.cpp)
+add_executable(epic_navigation_node src/epic_navigation_node.cpp)
 
 # Add cmake target dependencies of the executable
 # same as for the library above
 #add_dependencies(epic_plan_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Specify libraries to link a library or executable target against
-target_link_libraries(epic_plan_node
+target_link_libraries(epic_nav_core_plugin
   ${catkin_LIBRARIES}
   epic
 )
 
-target_link_libraries(epic_plan_nav_core
+target_link_libraries(epic_navigation_node
   ${catkin_LIBRARIES}
   epic
 )

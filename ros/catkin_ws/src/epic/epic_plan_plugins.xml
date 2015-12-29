@@ -1,5 +1,0 @@
-<library path="lib/libepic_plan_nav_core">
-  <class name="epic_plan/EpicPlanNavCore" type="epic_plan::EpicPlanNavCore" base_class_type="nav_core::BaseGlobalPlanner">
-    <description>This is a global planner plugin using harmonic functions as part of the 'epic' library.</description>
-  </class>
-</library>

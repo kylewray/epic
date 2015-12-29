@@ -26,11 +26,15 @@
 #define CONSTANTS_H
 
 
+namespace epic {
+
 // This is determined by hardware, so what is below is a 'safe' guess. If this is
 // off, the program might return 'nan' or 'inf'.
 //#define FLT_MAX 1e+35
 #define FLT_MAX 1e+300
 #define FLT_MIN (-FLT_MAX)
+
+};
 
 
 #endif // CONSTANTS_H

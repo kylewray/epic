@@ -29,6 +29,8 @@
 #include <stdio.h>
 
 
+namespace epic {
+
 int harmonic_initialize_dimension_size_gpu(Harmonic *harmonic)
 {
     // Ensure the data is valid.
@@ -166,4 +168,5 @@ int harmonic_uninitialize_locked_gpu(Harmonic *harmonic)
     return EPIC_SUCCESS;
 }
 
+}; // namespace epic
 

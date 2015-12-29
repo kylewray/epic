@@ -22,58 +22,57 @@
  */
 
 
-#ifndef HARMONIC_MODEL_GPU_H
-#define HARMONIC_MODEL_GPU_H
+#ifndef HARMONIC_UTILITIES_CPU_H
+#define HARMONIC_UTILITIES_CPU_H
 
 
 #include "harmonic.h"
 
 namespace epic {
 
-/**
- *  Initialize CUDA by transferring dimension size information to the device.
- *  @param  harmonic    The Harmonic object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int harmonic_initialize_dimension_size_gpu(Harmonic *harmonic);
+#define EPIC_CELL_TYPE_GOAL      0
+#define EPIC_CELL_TYPE_OBSTACLE  1
+#define EPIC_CELL_TYPE_FREE      2
 
 /**
- *  Uninitialize CUDA by transferring dimension size information to the device.
+ *  Assign a cell to obstacle, goal, or free space in two dimensions.
  *  @param  harmonic    The Harmonic object.
+ *  @param  x           The x location.
+ *  @param  y           The y location.
+ *  @param  type        Sets 0 for goal, 1 for obstacle, and 2 for free.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_uninitialize_dimension_size_gpu(Harmonic *harmonic);
+extern "C" int harmonic_utilities_set_cell_2d_cpu(Harmonic *harmonic,
+        unsigned int x, unsigned int y, int type);
 
 /**
- *  Initialize CUDA by transferring potential value information to the device.
+ *  Add or remove a filled square obstacle, axis-aligned in two dimensions.
  *  @param  harmonic    The Harmonic object.
+ *  @param  x1          Top left x location.
+ *  @param  y1          Top left y location.
+ *  @param  x2          Bottom right x location.
+ *  @param  y2          Bottom right y location.
+ *  @param  add         True to add, false to remove.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_initialize_potential_values_gpu(Harmonic *harmonic);
+//extern "C" int harmonic_utilities_filled_square_cpu(Harmonic *harmonic,
+//        unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2,
+//        bool add);
 
 /**
- *  Uninitialize CUDA by transferring potential value information to the device.
+ *  Add or remove a filled circle obstacle, axis-aligned in two dimensions.
  *  @param  harmonic    The Harmonic object.
+ *  @param  x           The x location.
+ *  @param  y           The y location.
+ *  @param  r           The radius of the sphere.
+ *  @param  add         True to add, false to remove.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_uninitialize_potential_values_gpu(Harmonic *harmonic);
-
-/**
- *  Initialize CUDA by transferring locked information to the device.
- *  @param  harmonic    The Harmonic object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int harmonic_initialize_locked_gpu(Harmonic *harmonic);
-
-/**
- *  Uninitialize CUDA by transferring locked information to the device.
- *  @param  harmonic    The Harmonic object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int harmonic_uninitialize_locked_gpu(Harmonic *harmonic);
+//extern "C" int harmonic_utilities_filled_circle_cpu(Harmonic *harmonic,
+//        unsigned int x, unsigned int y, unsigned int r, bool add);
 
 };
 
 
-#endif // HARMONIC_MODEL_GPU_H
+#endif // HARMONIC_UTILITIES_CPU_H
 

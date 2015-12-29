@@ -26,6 +26,12 @@
 #define HARMONIC_H
 
 
+namespace epic {
+
+#define EPIC_LOG_SPACE_GOAL         0.0
+#define EPIC_LOG_SPACE_OBSTACLE     -1e6
+#define EPIC_LOG_SPACE_FREE         -1e6
+
 /**
  *  A structure for a Harmonic object within the inertia library.
  *  @param  n           The number of dimensions.
@@ -60,6 +66,8 @@ typedef struct Harmonic {
 
     float *d_delta;
 } Harmonic;
+
+};
 
 
 #endif // HARMONIC_H
