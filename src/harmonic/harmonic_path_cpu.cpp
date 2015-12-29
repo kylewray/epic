@@ -176,5 +176,15 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
     return EPIC_SUCCESS;
 }
 
+int harmonic_free_path_cpu(float *&path)
+{
+    if (path != nullptr) {
+        delete [] path;
+    }
+    path = nullptr;
+
+    return EPIC_SUCCESS;
+}
+
 }; // namespace epic
 

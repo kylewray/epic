@@ -31,9 +31,9 @@ from epic.harmonic_map import *
 
 
 images = [
-          #{'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
-          #{'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
-          #{'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
+          {'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
+          {'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
+          {'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
           {'name': "Maze 2", 'filename': os.path.join(thisFilePath, "maze_2.png")},
           {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
          ]

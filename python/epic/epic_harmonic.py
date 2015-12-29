@@ -60,6 +60,7 @@ class EpicHarmonic(ct.Structure):
 # Functions from 'harmonic_cpu.h'.
 _epic.harmonic_complete_cpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 _epic.harmonic_update_cpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+_epic.harmonic_update_and_check_cpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
 # Functions from 'harmonic_gpu.h'.
 _epic.harmonic_complete_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
@@ -70,7 +71,6 @@ _epic.harmonic_update_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
 _epic.harmonic_update_and_check_gpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_uint)
 _epic.harmonic_get_potential_values_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 
-
 # Functions from 'harmonic_model_gpu.h'.
 _epic.harmonic_initialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 _epic.harmonic_uninitialize_dimension_size_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
@@ -80,4 +80,14 @@ _epic.harmonic_uninitialize_potential_values_gpu.argtypes = tuple([ct.POINTER(Ep
 
 _epic.harmonic_initialize_locked_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
 _epic.harmonic_uninitialize_locked_gpu.argtypes = tuple([ct.POINTER(EpicHarmonic)])
+
+# Functions from 'harmonic_path_cpu.h'.
+_epic.harmonic_compute_potential_2d_cpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_float, ct.c_float,
+                                                    ct.POINTER(ct.c_float))
+_epic.harmonic_compute_gradient_2d_cpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_float, ct.c_float, ct.c_float,
+                                                    ct.POINTER(ct.c_float), ct.POINTER(ct.c_float))
+_epic.harmonic_compute_path_2d_cpu.argtypes = (ct.POINTER(EpicHarmonic), ct.c_float, ct.c_float,
+                                                    ct.c_float, ct.c_float, ct.c_uint,
+                                                    ct.POINTER(ct.c_uint), ct.POINTER(ct.POINTER(ct.c_float)))
+_epic.harmonic_free_path_cpu.argtypes = tuple([ct.POINTER(ct.POINTER(ct.c_float))])
 

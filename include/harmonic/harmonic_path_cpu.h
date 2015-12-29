@@ -74,6 +74,13 @@ extern "C" int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y
         float stepSize, float cdPrecision, unsigned int maxLength,
         unsigned int &k, float *&path);
 
+/**
+ *  Free the path provided. Useful for wrappers, such as Python.
+ *  @param  path    The path to free. This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_free_path_cpu(float *&path);
+
 };
 
 

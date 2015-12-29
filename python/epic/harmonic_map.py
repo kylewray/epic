@@ -32,6 +32,7 @@ import cv2
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import harmonic as harm
+import epic_harmonic as eh
 
 
 class HarmonicMap(harm.Harmonic):
@@ -97,105 +98,36 @@ class HarmonicMap(harm.Harmonic):
                 else:
                     self.u[y * self.m[1] + x] = 0.0
 
-    def _compute_potential(self, x, y):
-        """ Get the value of a true between pixel point (x, y) as linear combination of neighbor
-            pixel values.
-        
-            Parameters:
-                x   --  The x coordinate (between pixels).
-                y   --  The y coordinate (between pixels).
-
-            Returns:
-                The linear combination of the neighboring pixel values of (x, y).
-        """
-
-        xCellIndex, yCellIndex = self._compute_cell_index(x, y)
-
-        if self.locked[yCellIndex * self.m[1] + xCellIndex] == 1 and \
-                self.u[yCellIndex * self.m[1] + xCellIndex] < 0.0:
-            raise Exception()
-
-        xtl = int(x - 0.5 * self.pxSize)
-        ytl = int(y - 0.5 * self.pxSize)
-
-        xtr = int(x + 0.5 * self.pxSize)
-        ytr = int(y - 0.5 * self.pxSize)
-
-        xbl = int(x - 0.5 * self.pxSize)
-        ybl = int(y + 0.5 * self.pxSize)
-
-        xbr = int(x + 0.5 * self.pxSize)
-        ybr = int(y + 0.5 * self.pxSize)
-
-        alpha = (x - xtl) / self.pxSize
-        beta = (y - ytl) / self.pxSize
-
-        one = (1.0 - alpha) * self.u[ytl * self.m[1] + xtl] + alpha * self.u[ytr * self.m[1] + xtr]
-        two = (1.0 - alpha) * self.u[ybl * self.m[1] + xbl] + alpha * self.u[ybr * self.m[1] + xbr]
-        three = (1.0 - beta) * one + beta * two
-
-        return three
-
-    def _compute_cell_index(self, x, y):
-        """ Compute the offset to get the actual cell index from the subpixel coordinate.
-
-            Parameters:
-                x   --  The x coordinate (between pixels).
-                y   --  The y coordinate (between pixels).
-
-            Returns:
-                xCellIndex  --  The x cell index.
-                yCellIndex  --  The y cell index.
-        """
-
-        return int(x + 0.5 * self.pxSize), int(y + 0.5 * self.pxSize)
 
     def _compute_streamline(self, x, y):
         """ Compute a streamline (series of points) starting from this initial (x, y) location.
 
             Parameters:
-                x   --  The x location to start.
-                y   --  The y location to start.
+                x   --  The x "float pixel" location to start.
+                y   --  The y "float pixel" location to start.
 
             Returns:
                 The list of points from this starting location to a goal.
         """
 
-        points = [(x, y)]
+        k = ct.c_uint(0)
+        rawPath = ct.POINTER(ct.c_float)()
 
-        xCellIndex, yCellIndex = self._compute_cell_index(x, y)
+        result = eh._epic.harmonic_compute_path_2d_cpu(self, x, y,
+                                                       float(0.25), float(0.5), int(1e6),
+                                                       ct.byref(k), ct.byref(rawPath))
+        if result != 0:
+            print("Failed to compute path using 'epic' library.")
+            raise Exception()
 
-        pathStepSize = 0.5
-        centralDifferenceStepSize = 0.5
+        k = int(k.value)
+        path = [(rawPath[2 * i + 0], rawPath[2 * i + 1]) for i in range(k)]
 
-        maxPoints = self.image.size / pathStepSize
+        result = eh._epic.harmonic_free_path_cpu(ct.byref(rawPath))
+        if result != 0:
+            print("Failed to free path using 'epic' library.")
 
-        while self.locked[yCellIndex * self.m[1] + xCellIndex] != 1 and len(points) < maxPoints:
-            values = [self._compute_potential(x - centralDifferenceStepSize, y),
-                      self._compute_potential(x + centralDifferenceStepSize, y),
-                      self._compute_potential(x, y - centralDifferenceStepSize),
-                      self._compute_potential(x, y + centralDifferenceStepSize)]
-
-            partialx = (values[1] - values[0]) / (2.0 * centralDifferenceStepSize)
-            partialy = (values[3] - values[2]) / (2.0 * centralDifferenceStepSize)
-
-            denom = math.sqrt(pow(partialx, 2) + pow(partialy, 2))
-            partialx /= denom
-            partialy /= denom
-
-            # Note: This is "+" for gradient *descent* (backwards from normal) here because
-            # "partialx" and "partialy" were computed using log-space with (1-u) in there,
-            # so the log-space solution's gradient points the opposite way. (See proofs.)
-            x += partialx * pathStepSize
-            y += partialy * pathStepSize
-
-            xCellIndex, yCellIndex = self._compute_cell_index(x, y)
-
-            points += [(xCellIndex, yCellIndex)]
-
-            print((x, y), (xCellIndex, yCellIndex), self._compute_potential(x, y))
-
-        return points
+        return path
 
     def _draw_image(self):
         """ Draw the image given the updated u values. """
