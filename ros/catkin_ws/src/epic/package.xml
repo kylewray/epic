@@ -48,6 +48,9 @@
   <depend>nav_core</depend>
   <depend>costmap_2d</depend>
 
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+
   <exec_depend>libepic</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->

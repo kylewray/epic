@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   nav_core
   costmap_2d
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -46,19 +47,18 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+# Generate messages in the 'msg' folder
+#add_message_files(
+#  FILES
+#  EpicNavigationOccupancy.msg
+#)
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+# Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  ModifyGoals.srv
+  ComputePath.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -67,11 +67,13 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+# Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  nav_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES epic
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -126,7 +128,9 @@ link_directories(../../../../lib)
 #link_directories(/home/axiom/Development/epic/lib)
 
 # Declare a C++ library
-add_library(epic_nav_core_plugin src/epic_nav_core_plugin.cpp)
+add_library(epic_nav_core_plugin
+    src/epic_nav_core_plugin.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -134,7 +138,10 @@ add_library(epic_nav_core_plugin src/epic_nav_core_plugin.cpp)
 # add_dependencies(epic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Declare a C++ executable
-add_executable(epic_navigation_node src/epic_navigation_node.cpp)
+add_executable(epic_navigation_node
+    src/epic_navigation_node.cpp
+    src/epic_navigation_node_main.cpp
+)
 
 # Add cmake target dependencies of the executable
 # same as for the library above

@@ -47,6 +47,8 @@ namespace epic {
 #define COSTMAP_OBSTACLE_THRESHOLD 250
 #define NUM_THREADS_GPU 1024
 
+// TODO: Change naming convention to "var_like_this" instead of "varLikeThis". Header as well.
+
 EpicNavCorePlugin::EpicNavCorePlugin()
 {
     costmap = NULL;
