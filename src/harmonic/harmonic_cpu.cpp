@@ -156,11 +156,20 @@ int harmonic_complete_cpu(Harmonic *harmonic)
     result = EPIC_SUCCESS;
 
     while (result != EPIC_SUCCESS_AND_CONVERGED || harmonic->currentIteration < mMax) {
-        result = harmonic_update_cpu(harmonic);
-        if (result != EPIC_SUCCESS && result != EPIC_SUCCESS_AND_CONVERGED) {
-            fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n",
-                            "Failed to perform the Gauss-Seidel update (and check) step.");
-            return result;
+        if (harmonic->currentIteration % harmonic->numIterationsToStaggerCheck == 0) {
+            result = harmonic_update_and_check_cpu(harmonic);
+            if (result != EPIC_SUCCESS && result != EPIC_SUCCESS_AND_CONVERGED) {
+                fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n",
+                                "Failed to perform the Gauss-Seidel update (and check) step.");
+                return result;
+            }
+        } else {
+            result = harmonic_update_cpu(harmonic);
+            if (result != EPIC_SUCCESS) {
+                fprintf(stderr, "Error[harmonic_complete_cpu]: %s\n",
+                                "Failed to perform the Gauss-Seidel update step.");
+                return result;
+            }
         }
 
         /* *** DEBUG ***
