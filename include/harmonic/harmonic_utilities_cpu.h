@@ -30,46 +30,16 @@
 
 namespace epic {
 
-#define EPIC_CELL_TYPE_GOAL      0
-#define EPIC_CELL_TYPE_OBSTACLE  1
-#define EPIC_CELL_TYPE_FREE      2
-
 /**
- *  Assign a cell to obstacle, goal, or free space in two dimensions.
+ *  Assign a cells to obstacle, goal, or free space in two dimensions.
  *  @param  harmonic    The Harmonic object.
- *  @param  x           The x location.
- *  @param  y           The y location.
- *  @param  type        Sets 0 for goal, 1 for obstacle, and 2 for free.
+ *  @param  k           The number of cell locations to update.
+ *  @param  v           The k 2-dimensional cell locations: [x1, y1, x2, y2, ..., xk, yk].
+ *  @param  types       Sets 0 for goal, 1 for obstacle, and 2 for free (constants.h).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int harmonic_utilities_set_cell_2d_cpu(Harmonic *harmonic,
-        unsigned int x, unsigned int y, int type);
-
-/**
- *  Add or remove a filled square obstacle, axis-aligned in two dimensions.
- *  @param  harmonic    The Harmonic object.
- *  @param  x1          Top left x location.
- *  @param  y1          Top left y location.
- *  @param  x2          Bottom right x location.
- *  @param  y2          Bottom right y location.
- *  @param  add         True to add, false to remove.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-//extern "C" int harmonic_utilities_filled_square_cpu(Harmonic *harmonic,
-//        unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2,
-//        bool add);
-
-/**
- *  Add or remove a filled circle obstacle, axis-aligned in two dimensions.
- *  @param  harmonic    The Harmonic object.
- *  @param  x           The x location.
- *  @param  y           The y location.
- *  @param  r           The radius of the sphere.
- *  @param  add         True to add, false to remove.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-//extern "C" int harmonic_utilities_filled_circle_cpu(Harmonic *harmonic,
-//        unsigned int x, unsigned int y, unsigned int r, bool add);
+extern "C" int harmonic_utilities_set_cells_2d_cpu(Harmonic *harmonic,
+        unsigned int k, unsigned int *v, unsigned int *types);
 
 };
 

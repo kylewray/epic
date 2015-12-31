@@ -57,7 +57,7 @@ void harmonic_update_2d_cpu(Harmonic *harmonic, bool checkConvergence)
             float uPrevious = harmonic->u[x0 * harmonic->m[1] + x1];
 
             // Update the value at this location with the log-sum-exp trick.
-            float maxVal = FLT_MIN;
+            float maxVal = EPIC_FLT_MIN;
             maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] + x1], harmonic->u[(x0 + 1) * harmonic->m[1] + x1]);
             maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 - 1)]);
             maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] + (x1 + 1)]);
@@ -106,7 +106,7 @@ void harmonic_update_3d_cpu(Harmonic *harmonic, bool checkConvergence)
                 float uPrevious = harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2];
 
                 // Update the value at this location with the log-sum-exp trick.
-                float maxVal = FLT_MIN;
+                float maxVal = EPIC_FLT_MIN;
                 maxVal = std::max(harmonic->u[(x0 - 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2],
                                 harmonic->u[(x0 + 1) * harmonic->m[1] * harmonic->m[2] + x1 * harmonic->m[2] + x2]);
                 maxVal = std::max(maxVal, harmonic->u[x0 * harmonic->m[1] * harmonic->m[2] + (x1 - 1) * harmonic->m[2] + x2]);

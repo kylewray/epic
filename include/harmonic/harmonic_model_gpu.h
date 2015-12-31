@@ -72,6 +72,13 @@ extern "C" int harmonic_initialize_locked_gpu(Harmonic *harmonic);
  */
 extern "C" int harmonic_uninitialize_locked_gpu(Harmonic *harmonic);
 
+/**
+ *  Update the potential values and the locked values from host to device.
+ *  @param  harmonic    The Harmonic object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_update_model_gpu(Harmonic *harmonic);
+
 };
 
 

@@ -22,37 +22,29 @@
  */
 
 
-#include <ros/ros.h>
+#ifndef HARMONIC_UTILITIES_GPU_H
+#define HARMONIC_UTILITIES_GPU_H
 
-#include <epic/epic_navigation_node.h>
 
-int main(int argc, char **argv)
-{
-    ros::init(argc, argv, "epic_navigation_node");
+#include "harmonic.h"
 
-    ros::NodeHandle node_handle;
+namespace epic {
 
-    // TODO: Read a ROS parameter for this node to assign the desired algorithm for EpicNavigation.
-    epic::EpicNavigationNode epic_navigation_node;
-    epic_navigation_node.initMsgs("epic_navigation_node");
+/**
+ *  Assign a cells to obstacle, goal, or free space in two dimensions on the GPU.
+ *  @param  harmonic    The Harmonic object.
+ *  @param  numThreads  The number of threads to use, a multiple of 32. Default is 1024.
+ *  @param  k           The number of cell locations to update.
+ *  @param  v           The k 2-dimensional cell locations: [x1, y1, x2, y2, ..., xk, yk].
+ *  @param  types       Sets 0 for goal, 1 for obstacle, and 2 for free (constants.h).
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int harmonic_utilities_set_cells_2d_gpu(Harmonic *harmonic, unsigned int numThreads,
+        unsigned int k, unsigned int *v, unsigned int *types);
 
-    // TODO: Read a ROS parameter for the number of update steps of the algorithm at a time.
-    unsigned int num_update_steps = 10;
+};
 
-    // TODO: Read a ROS parameter for how many updates should be called per second. (Default is 10Hz.)
-    ros::Rate rate(10);
 
-    while (ros::ok()) {
-        // Perform an update of the harmonic function or other navigation planning algorithm.
-        epic_navigation_node.update(num_update_steps);
+#endif // HARMONIC_UTILITIES_GPU_H
 
-        // Check for service calls.
-        ros::spinOnce();
-
-        // Sleep and let other processes think.
-        rate.sleep();
-    }
-
-    return 0;
-}
 

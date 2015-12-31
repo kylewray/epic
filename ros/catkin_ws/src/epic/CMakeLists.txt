@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(epic)
 
+# Important: Must be C++11 since I assume in EpicNavigationNode that vector.h can be dereferenced to get the array.
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -57,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   ModifyGoals.srv
+  SetCells.srv
   ComputePath.srv
 )
 

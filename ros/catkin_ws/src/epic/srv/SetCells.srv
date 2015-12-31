@@ -1,0 +1,4 @@
+uint32[] v
+uint32[] types
+---
+bool success

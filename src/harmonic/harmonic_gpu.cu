@@ -49,7 +49,7 @@ __global__ void harmonic_update_2d_gpu(unsigned int *m, float *u, unsigned int *
             }
 
             // Update the value at this location with the log-sum-exp trick.
-            float maxVal = FLT_MIN;
+            float maxVal = EPIC_FLT_MIN;
             maxVal = fmaxf(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
             maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 - 1)]);
             maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 + 1)]);
@@ -92,7 +92,7 @@ __global__ void harmonic_update_and_check_2d_gpu(unsigned int *m, float *u, unsi
             float uPrevious = u[x0 * m[1] + x1];
 
             // Update the value at this location with the log-sum-exp trick.
-            float maxVal = FLT_MIN;
+            float maxVal = EPIC_FLT_MIN;
             maxVal = fmaxf(u[(x0 - 1) * m[1] + x1], u[(x0 + 1) * m[1] + x1]);
             maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 - 1)]);
             maxVal = fmaxf(maxVal, u[x0 * m[1] + (x1 + 1)]);

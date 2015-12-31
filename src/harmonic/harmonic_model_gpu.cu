@@ -168,5 +168,40 @@ int harmonic_uninitialize_locked_gpu(Harmonic *harmonic)
     return EPIC_SUCCESS;
 }
 
+
+int harmonic_update_model_gpu(Harmonic *harmonic)
+{
+    if (harmonic->n == 0 || harmonic->m == nullptr ||
+            harmonic->u == nullptr || harmonic->d_u == nullptr ||
+            harmonic->locked == nullptr || harmonic->d_locked == nullptr) {
+        fprintf(stderr, "Error[harmonic_update_model_gpu]: %s\n", "Invalid data.");
+        return EPIC_ERROR_INVALID_DATA;
+    }
+
+    // Compute the number of cells.
+    unsigned int numCells = 1;
+    for (unsigned int i = 0; i < harmonic->n; i++) {
+        numCells *= harmonic->m[i];
+    }
+
+    // Copy the data from the host to the device.
+    if (cudaMemcpy(harmonic->d_u, harmonic->u, numCells * sizeof(float),
+                    cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_model_gpu]: %s\n",
+                "Failed to copy memory from host to device for the potential values.");
+        return EPIC_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    // Copy the data from the host to the device.
+    if (cudaMemcpy(harmonic->d_locked, harmonic->locked, numCells * sizeof(unsigned int),
+                    cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[harmonic_update_model_gpu]: %s\n",
+                "Failed to copy memory from host to device for the locked cells.");
+        return EPIC_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    return EPIC_SUCCESS;
+}
+
 }; // namespace epic
 

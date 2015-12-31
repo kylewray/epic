@@ -1,5 +1,6 @@
 geometry_msgs/PoseStamped start
-uint32 max_length
+float32 step_size
 float32 precision
+uint32 max_length
 ---
 nav_msgs/Path path
