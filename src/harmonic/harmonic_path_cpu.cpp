@@ -48,7 +48,7 @@ int harmonic_compute_potential_2d_cpu(Harmonic *harmonic, float x, float y, floa
     unsigned int yCellIndex = (unsigned int)(y + 0.5f);
 
     if (xCellIndex < 0.0f || yCellIndex < 0.0f ||
-            xCellIndex >= harmonic->m[0] || yCellIndex >= harmonic->m[1] ||
+            xCellIndex >= harmonic->m[1] || yCellIndex >= harmonic->m[0] ||
             (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] == 1 &&
             harmonic->u[yCellIndex * harmonic->m[1] + xCellIndex] < 0.0f)) {
         fprintf(stderr, "Error[harmonic_compute_potential_2d_cpu]: Invalid location.");
@@ -130,7 +130,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
     unsigned int yCellIndex = (unsigned int)(y + 0.5f);
 
     if (xCellIndex < 0.0f || yCellIndex < 0.0f ||
-            xCellIndex >= harmonic->m[0] || yCellIndex >= harmonic->m[1] ||
+            xCellIndex >= harmonic->m[1] || yCellIndex >= harmonic->m[0] ||
             (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] == 1 &&
             harmonic->u[yCellIndex * harmonic->m[1] + xCellIndex] < 0.0f)) {
         fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: Invalid location.");

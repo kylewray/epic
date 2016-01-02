@@ -48,21 +48,21 @@ int harmonic_utilities_set_cells_2d_cpu(Harmonic *harmonic, unsigned int k, unsi
         unsigned int x = v[i * 2 + 0];
         unsigned int y = v[i * 2 + 1];
 
-        if (x >= harmonic->m[0] || y >= harmonic->m[1]) {
+        if (y >= harmonic->m[0] || x >= harmonic->m[1]) {
             fprintf(stderr, "Warning[harmonic_utilities_set_cells_2d_cpu]: Provided vector has invalid values outside area.");
             //return EPIC_ERROR_INVALID_LOCATION;
             continue;
         }
 
         if (types[i] == EPIC_CELL_TYPE_GOAL) {
-            harmonic->u[x * harmonic->m[1] + y] = EPIC_LOG_SPACE_GOAL;
-            harmonic->locked[x * harmonic->m[1] + y] = 1;
+            harmonic->u[y * harmonic->m[1] + x] = EPIC_LOG_SPACE_GOAL;
+            harmonic->locked[y * harmonic->m[1] + x] = 1;
         } else if (types[i] == EPIC_CELL_TYPE_OBSTACLE) {
-            harmonic->u[x * harmonic->m[1] + y] = EPIC_LOG_SPACE_OBSTACLE;
-            harmonic->locked[x * harmonic->m[1] + y] = 1;
+            harmonic->u[y * harmonic->m[1] + x] = EPIC_LOG_SPACE_OBSTACLE;
+            harmonic->locked[y * harmonic->m[1] + x] = 1;
         } else if (types[i] == EPIC_CELL_TYPE_FREE) {
-            harmonic->u[x * harmonic->m[1] + y] = EPIC_LOG_SPACE_FREE;
-            harmonic->locked[x * harmonic->m[1] + y] = 0;
+            harmonic->u[y * harmonic->m[1] + x] = EPIC_LOG_SPACE_FREE;
+            harmonic->locked[y * harmonic->m[1] + x] = 0;
         } else {
             fprintf(stderr, "Warning[harmonic_utilities_set_cells_2d_cpu]: Type is invalid. No change made.");
             //return EPIC_ERROR_INVALID_CELL_TYPE;

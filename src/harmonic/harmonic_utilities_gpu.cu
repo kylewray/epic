@@ -46,19 +46,19 @@ __global__ void harmonic_utilities_set_cells_2d_gpu(unsigned int *m, float *u, u
     unsigned int x = v[i * 2 + 0];
     unsigned int y = v[i * 2 + 1];
 
-    if (x >= m[0] || y >= m[1]) {
+    if (y >= m[0] || x >= m[1]) {
         return;
     }
 
     if (types[i] == EPIC_CELL_TYPE_GOAL) {
-        u[x * m[1] + y] = EPIC_LOG_SPACE_GOAL;
-        locked[x * m[1] + y] = 1;
+        u[y * m[1] + x] = EPIC_LOG_SPACE_GOAL;
+        locked[y * m[1] + x] = 1;
     } else if (types[i] == EPIC_CELL_TYPE_OBSTACLE) {
-        u[x * m[1] + y] = EPIC_LOG_SPACE_OBSTACLE;
-        locked[x * m[1] + y] = 1;
+        u[y * m[1] + x] = EPIC_LOG_SPACE_OBSTACLE;
+        locked[y * m[1] + x] = 1;
     } else if (types[i] == EPIC_CELL_TYPE_FREE) {
-        u[x * m[1] + y] = EPIC_LOG_SPACE_FREE;
-        locked[x * m[1] + y] = 0;
+        u[y * m[1] + x] = EPIC_LOG_SPACE_FREE;
+        locked[y * m[1] + x] = 0;
     }
 }
 
