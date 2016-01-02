@@ -40,7 +40,7 @@ int harmonic_compute_potential_2d_cpu(Harmonic *harmonic, float x, float y, floa
 {
     if (harmonic == nullptr || harmonic->m == nullptr ||
             harmonic->u == nullptr || harmonic->locked == nullptr) {
-        fprintf(stderr, "Error[harmonic_compute_potential_2d_cpu]: Invalid data.");
+        fprintf(stderr, "Error[harmonic_compute_potential_2d_cpu]: %s\n", "Invalid data.");
         return EPIC_ERROR_INVALID_DATA;
     }
 
@@ -51,7 +51,7 @@ int harmonic_compute_potential_2d_cpu(Harmonic *harmonic, float x, float y, floa
             xCellIndex >= harmonic->m[1] || yCellIndex >= harmonic->m[0] ||
             (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] == 1 &&
             harmonic->u[yCellIndex * harmonic->m[1] + xCellIndex] < 0.0f)) {
-        fprintf(stderr, "Error[harmonic_compute_potential_2d_cpu]: Invalid location.");
+        fprintf(stderr, "Error[harmonic_compute_potential_2d_cpu]: %s\n", "Invalid location.");
         return EPIC_ERROR_INVALID_LOCATION;
     }
 
@@ -85,7 +85,7 @@ int harmonic_compute_gradient_2d_cpu(Harmonic *harmonic, float x, float y, float
 {
     if (harmonic == nullptr || harmonic->m == nullptr ||
             harmonic->u == nullptr || harmonic->locked == nullptr) {
-        fprintf(stderr, "Error[harmonic_compute_gradient_2d_cpu]: Invalid data.");
+        fprintf(stderr, "Error[harmonic_compute_gradient_2d_cpu]: %s\n", "Invalid data.");
         return EPIC_ERROR_INVALID_DATA;
     }
 
@@ -100,7 +100,8 @@ int harmonic_compute_gradient_2d_cpu(Harmonic *harmonic, float x, float y, float
     result += harmonic_compute_potential_2d_cpu(harmonic, x, y + cdPrecision, value3);
 
     if (result != EPIC_SUCCESS) {
-        fprintf(stderr, "Error[harmonic_compute_gradient_2d_cpu]: Failed to compute potential values.");
+        fprintf(stderr, "Error[harmonic_compute_gradient_2d_cpu]: %s\n",
+                        "Failed to compute potential values.");
         return EPIC_ERROR_INVALID_GRADIENT;
     }
 
@@ -122,7 +123,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
     if (harmonic == nullptr || harmonic->m == nullptr ||
             harmonic->u == nullptr || harmonic->locked == nullptr ||
             path != nullptr) {
-        fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: Invalid data.");
+        fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: %s\n", "Invalid data.");
         return EPIC_ERROR_INVALID_DATA;
     }
 
@@ -133,7 +134,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
             xCellIndex >= harmonic->m[1] || yCellIndex >= harmonic->m[0] ||
             (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] == 1 &&
             harmonic->u[yCellIndex * harmonic->m[1] + xCellIndex] < 0.0f)) {
-        fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: Invalid location.");
+        fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: %s\n", "Invalid location.");
         return EPIC_ERROR_INVALID_LOCATION;
     }
 
@@ -150,7 +151,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
 
         int result = harmonic_compute_gradient_2d_cpu(harmonic, x, y, cdPrecision, partialX, partialY);
         if (result != EPIC_SUCCESS) {
-            fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: Could not compute gradient.");
+            fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: %s\n", "Could not compute gradient.");
             return EPIC_ERROR_INVALID_GRADIENT;
         }
 

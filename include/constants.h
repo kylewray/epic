@@ -38,6 +38,10 @@ namespace epic {
 #define EPIC_CELL_TYPE_OBSTACLE  1
 #define EPIC_CELL_TYPE_FREE      2
 
+#define EPIC_LOG_SPACE_GOAL         0.0
+#define EPIC_LOG_SPACE_OBSTACLE     -1e6
+#define EPIC_LOG_SPACE_FREE         -1e6
+
 };
 
 
