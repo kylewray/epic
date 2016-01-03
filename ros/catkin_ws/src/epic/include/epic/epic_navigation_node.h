@@ -29,6 +29,8 @@
 #include <ros/ros.h>
 
 #include <nav_msgs/OccupancyGrid.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 #include <harmonic/harmonic.h>
 
@@ -58,14 +60,16 @@ class EpicNavigationNode {
 public:
     /**
      *  The default constructor for the EpicNavigationNode. Defaults to 'harmonic'.
+     *  TODO: update params
      */
-    EpicNavigationNode();
+    EpicNavigationNode(ros::NodeHandle &nh);
 
     /**
      *  The constructor for the EpicNavigationNode, enabling the selection of the planner.
+     *  TODO: update params
      *  @param  alg     The algorithm to use (see defines above).
      */
-    EpicNavigationNode(unsigned int alg);
+    EpicNavigationNode(ros::NodeHandle &nh, unsigned int alg);
 
     /**
      *  The deconstructor for the EpicNavigationNode.
@@ -74,10 +78,9 @@ public:
 
     /**
      *  Initialize the services and messages.
-     *  @param  name    The name to use for registering and subscribing.
      *  @return True if successful in registering and subscribing, false otherwise.
      */
-    bool initMsgs(std::string name);
+    bool initMsgs();
 
     /**
      *  Update the harmonic function or other planner one step.
@@ -135,6 +138,12 @@ private:
      */
     void subOccupancyGrid(const nav_msgs::OccupancyGrid::ConstPtr &msg);
 
+    // TODO: comment missing
+	void subMapGoal(const geometry_msgs::PoseStamped::ConstPtr &msg);
+
+    // TODO: comment missing
+	void subMapPoseEstimate(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg);
+
     /**
      *  Handler for receiving add goal(s) service request. Assumption: These are not initially obstacles.
      *  @param  req     The AddGoal service request containing the goal location(s) to add.
@@ -167,8 +176,23 @@ private:
      */
     bool srvComputePath(epic::ComputePath::Request &req, epic::ComputePath::Response &res);
 
+    // TODO: comment missing
+    ros::NodeHandle private_node_handle;
+
     // The subscriber for the OccupancyGrid message.
     ros::Subscriber sub_occupancy_grid;
+
+    // TODO: comment missing
+    ros::Subscriber sub_map_goal;
+
+    // TODO: comment missing
+    ros::Subscriber sub_map_pose_estimate;
+
+    // TODO: comment missing
+    ros::Publisher pub_path;
+
+    // TODO: comment missing
+	bool goal_added;
 
     // The service for AddGoal.
     ros::ServiceServer srv_add_goals;
@@ -211,6 +235,12 @@ private:
 
     // If this class' algorithm variables have been properly initialized or not.
     bool init_alg;
+
+    // TODO: comment missing
+    geometry_msgs::PoseStamped last_goal;
+
+    // TODO: comment missing
+    geometry_msgs::PoseStamped current_pose;
 
 };
 

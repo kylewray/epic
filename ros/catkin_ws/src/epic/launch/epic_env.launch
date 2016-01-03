@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="map_name" default="$(find epic)/maps/basic.yaml"/>
+
+  <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(arg map_name)">
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find epic)/rviz/default2.rviz"/>
+</launch>
+

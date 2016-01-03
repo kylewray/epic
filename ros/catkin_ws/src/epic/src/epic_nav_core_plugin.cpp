@@ -34,6 +34,7 @@
 #include <harmonic/harmonic_gpu.h>
 #include <harmonic/harmonic_model_gpu.h>
 #include <harmonic/harmonic_path_cpu.h>
+#include <constants.h>
 #include <error_codes.h>
 
 #include <stdio.h>

@@ -30,24 +30,24 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "epic_navigation_node");
 
-    ros::NodeHandle node_handle;
+    ros::NodeHandle node_handle("~");
 
     // TODO: Read a ROS parameter for this node to assign the desired algorithm for EpicNavigation.
-    epic::EpicNavigationNode epic_navigation_node;
-    epic_navigation_node.initMsgs("epic_navigation_node");
+    epic::EpicNavigationNode epic_navigation_node(node_handle);
+    epic_navigation_node.initMsgs();
 
     // TODO: Read a ROS parameter for the number of update steps of the algorithm at a time.
-    unsigned int num_update_steps = 10;
+    unsigned int num_update_steps = 50;
 
     // TODO: Read a ROS parameter for how many updates should be called per second. (Default is 10Hz.)
     ros::Rate rate(10);
 
     while (ros::ok()) {
-        // Perform an update of the harmonic function or other navigation planning algorithm.
-        epic_navigation_node.update(num_update_steps);
-
         // Check for service calls.
         ros::spinOnce();
+
+        // Perform an update of the harmonic function or other navigation planning algorithm.
+        epic_navigation_node.update(num_update_steps);
 
         // Sleep and let other processes think.
         rate.sleep();
