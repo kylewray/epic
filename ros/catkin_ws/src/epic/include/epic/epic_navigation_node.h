@@ -60,13 +60,13 @@ class EpicNavigationNode {
 public:
     /**
      *  The default constructor for the EpicNavigationNode. Defaults to 'harmonic'.
-     *  TODO: update params
+     *  @param  nh      The node handle from main.
      */
     EpicNavigationNode(ros::NodeHandle &nh);
 
     /**
      *  The constructor for the EpicNavigationNode, enabling the selection of the planner.
-     *  TODO: update params
+     *  @param  nh      The node handle from main.
      *  @param  alg     The algorithm to use (see defines above).
      */
     EpicNavigationNode(ros::NodeHandle &nh, unsigned int alg);
@@ -138,12 +138,6 @@ private:
      */
     void subOccupancyGrid(const nav_msgs::OccupancyGrid::ConstPtr &msg);
 
-    // TODO: comment missing
-	void subMapGoal(const geometry_msgs::PoseStamped::ConstPtr &msg);
-
-    // TODO: comment missing
-	void subMapPoseEstimate(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg);
-
     /**
      *  Handler for receiving add goal(s) service request. Assumption: These are not initially obstacles.
      *  @param  req     The AddGoal service request containing the goal location(s) to add.
@@ -176,23 +170,47 @@ private:
      */
     bool srvComputePath(epic::ComputePath::Request &req, epic::ComputePath::Response &res);
 
-    // TODO: comment missing
+    /**
+     *  Handler for receiving PoseWithConvarianceStamped messages for the "/initialpose" topic,
+     *  published by rviz by clicking the "2D Nav Goal" button.
+     *  @param  msg     The PoseWithConvarianceStamped message.
+     */
+    void subMapPoseEstimate(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg);
+
+    /**
+     *  Handler for receiving PostStamped messages for the "/move_base_simple/goal" topic, published
+     *  by rviz by clicking the "2D Nav Goal" button.
+     *  @param  msg     The PoseStamped message.
+     */
+    void subMapNavGoal(const geometry_msgs::PoseStamped::ConstPtr &msg);
+
+    // A private node handle; usually a reference to the one created in the node's "main" function.
     ros::NodeHandle private_node_handle;
 
     // The subscriber for the OccupancyGrid message.
     ros::Subscriber sub_occupancy_grid;
 
-    // TODO: comment missing
-    ros::Subscriber sub_map_goal;
-
-    // TODO: comment missing
+    // The subscriber for the "/initialpose" topic, published by rviz
+    // by clicking the "2D Nav Goal" button.
     ros::Subscriber sub_map_pose_estimate;
 
-    // TODO: comment missing
-    ros::Publisher pub_path;
+    // The subscriber for the "/move_base_simple/goal" topic, published by rviz
+    // by clicking the "2D Nav Goal" button.
+    ros::Subscriber sub_map_nav_goal;
 
-    // TODO: comment missing
-	bool goal_added;
+    // The publisher for the "
+    ros::Publisher pub_map_path;
+
+    // If a goal has ever been added, however, only with the "subMapGoal" function.
+    bool goal_added;
+
+    // The last goal location of the robot. Used by "subMapGoal" function.
+    // Assigned in rviz via "2D Nav Goal" button.
+    geometry_msgs::PoseStamped last_goal;
+
+    // The current pose of the robot. Used by "subMapGoal" function.
+    // Assigned in rviz via "2D Pose Estimate" button.
+    geometry_msgs::PoseStamped current_pose;
 
     // The service for AddGoal.
     ros::ServiceServer srv_add_goals;
@@ -227,6 +245,9 @@ private:
     // The Harmonic object for use if algorithm is EPIC_ALGORITHM_HARMONIC.
     Harmonic harmonic;
 
+    // The number of GPU threads for the Harmonic function, if GPU is used.
+    unsigned int num_gpu_threads;
+
     // If this is GPU-capable, or not.
     bool gpu;
 
@@ -235,12 +256,6 @@ private:
 
     // If this class' algorithm variables have been properly initialized or not.
     bool init_alg;
-
-    // TODO: comment missing
-    geometry_msgs::PoseStamped last_goal;
-
-    // TODO: comment missing
-    geometry_msgs::PoseStamped current_pose;
 
 };
 
