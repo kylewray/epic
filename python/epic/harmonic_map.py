@@ -132,19 +132,8 @@ class HarmonicMap(harm.Harmonic):
     def _draw_image(self):
         """ Draw the image given the updated u values. """
 
-        #epsilon = 1e-30
-
         # Convert the 2d potential back into an image.
         self.image = self.originalImage.copy()
-
-        #self.image = np.array([[int(np.log((self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon) / np.log(epsilon) * 255.0) \
-        #self.image = np.array([[int((1.0 - self.u[y * self.m[1] + x]) * 255.0) \
-        #                            for x in range(self.m[1])] \
-        #                        for y in range(self.m[0])], dtype=np.uint8)
-
-        #self.image = np.array([[max(0.0, min(255, int(-self.u[y * self.m[1] + x]))) \
-        #                            for x in range(self.m[1])] \
-        #                        for y in range(self.m[0])], dtype=np.uint8)
 
     def show(self):
         """ Render the current image to the screen; the escape key quits. """

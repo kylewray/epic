@@ -23,11 +23,15 @@
 import os
 import sys
 
+import math
+
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
 from epic.harmonic import *
 from epic.harmonic_map import *
+
+import epic.epic_harmonic as eh
 
 
 images = [
@@ -43,7 +47,7 @@ processes = ['gpu', 'cpu']
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2 or sys.argv[1] not in ['visual', 'batch']:
+    if len(sys.argv) != 2 or sys.argv[1] not in ['visual', 'visual+', 'batch']:
         print("Please specify either 'visual' or 'batch' as an argument.")
         sys.exit(0)
 
