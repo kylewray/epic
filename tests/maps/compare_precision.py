@@ -154,6 +154,27 @@ def color_valid_gradient_in_image(u, c):
             if harmonicMap.originalImage[y, x] == c and (x, y) not in closedset:
                 harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
 
+    # Lastly, go over all these pixels one last time and compute a streamline from them. If the streamline passes
+    # through a pixel that is not this color, then reset this initial starting pixel.
+    for y in range(1, harmonicMap.originalImage.shape[0] - 1):
+        for x in range(1, harmonicMap.originalImage.shape[1] - 1):
+            # Obstacles and goals are skipped. Also, skip non-c-pixels.
+            if harmonicMap.originalImage[y, x] != c:
+                continue
+
+            validStreamline = True
+            try:
+                path = harmonicMap._compute_streamline(x, y)
+                for xi, yj in path:
+                    if harmonicMap.originalImage[int(yj), int(xi)] != c:
+                        validStreamline = False
+                        break
+            except:
+                validStreamline = False
+
+            # If not a valid streamline, then reset color.
+            if not validStreamline:
+                harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
 
 array_type_m_uint = ct.c_uint * (harmonicMap.originalImage.size)
 locked = array_type_m_uint(*np.array([[int(harmonicMap.originalImage[y, x] == 0 or \
@@ -200,6 +221,7 @@ color_valid_gradient_in_image(uDouble, DOUBLE_COLOR)
 print("Coloring map with float colors...")
 color_valid_gradient_in_image(uFloat, FLOAT_COLOR)
 
+harmonicMap.hold = True
 harmonicMap.show()
 
 print("Done.")

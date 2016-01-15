@@ -49,6 +49,7 @@ class HarmonicMap(harm.Harmonic):
         self.image = None
 
         self.pxSize = 1.0
+        self.hold = False
 
     def load(self, filename):
         """ Load a map from a 2d grayscale image.
@@ -151,8 +152,9 @@ class HarmonicMap(harm.Harmonic):
             """
 
             if event == cv2.EVENT_LBUTTONUP:
-                # Repaint the image!
-                self._draw_image()
+                # Repaint the image, but only if we are not holding.
+                if not self.hold:
+                    self._draw_image()
 
                 # Compute the streamline and draw the points
                 for p in self._compute_streamline(x, y):
