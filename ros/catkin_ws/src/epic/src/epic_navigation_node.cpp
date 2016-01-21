@@ -27,6 +27,17 @@
 #include <tf/tf.h>
 #include <tf/transform_datatypes.h>
 
+#include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/spaces/RealVectorBounds.h>
+#include <ompl/base/SpaceInformation.h>
+#include <ompl/base/StateValidityChecker.h>
+#include <ompl/base/ScopedState.h>
+#include <ompl/base/ProblemDefinition.h>
+#include <ompl/base/OptimizationObjective.h>
+#include <ompl/base/SpaceInformation.h>
+#include <ompl/base/objectives/PathLengthOptimizationObjective.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+
 #include <epic/epic_navigation_node.h>
 
 #include <harmonic/harmonic_cpu.h>
@@ -75,6 +86,9 @@ EpicNavigationNode::EpicNavigationNode(ros::NodeHandle &nh) :
     num_gpu_threads = 1024;
 
     goal_added = false;
+
+    start_assigned = false;
+    goal_assigned = false;
 }
 
 
@@ -114,6 +128,9 @@ EpicNavigationNode::EpicNavigationNode(ros::NodeHandle &nh, unsigned int alg) :
     num_gpu_threads = 1024;
 
     goal_added = false;
+
+    start_assigned = false;
+    goal_assigned = false;
 }
 
 
@@ -189,6 +206,9 @@ void EpicNavigationNode::update(unsigned int num_steps)
                 return;
             }
         }
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+        ompl_planner_status = ompl_planner->solve(1.0 / (double)num_steps);
     } else {
     }
 }
@@ -232,6 +252,9 @@ void EpicNavigationNode::initAlg(unsigned int w, unsigned int h)
         } else {
             gpu = true;
         }
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+    } else {
     }
 }
 
@@ -267,6 +290,8 @@ void EpicNavigationNode::uninitAlg()
                 ROS_WARN("Warning[EpicNavigationNode::uninitAlg]: Failed to uninitialize GPU variables.");
             }
         }
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
     } else {
     }
 
@@ -337,6 +362,12 @@ bool EpicNavigationNode::isCellGoal(unsigned int x, unsigned int y)
 }
 
 
+ompl::base::OptimizationObjectivePtr omplGetPathLengthObjective(const ompl::base::SpaceInformationPtr &ompl_space_info)
+{
+    return ompl::base::OptimizationObjectivePtr(new ompl::base::PathLengthOptimizationObjective(ompl_space_info));
+}
+
+
 void EpicNavigationNode::subOccupancyGrid(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
     // If the size changed, then free everything and start over.
@@ -394,6 +425,41 @@ void EpicNavigationNode::subOccupancyGrid(const nav_msgs::OccupancyGrid::ConstPt
 
         v.clear();
         types.clear();
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+
+        ompl::base::RealVectorBounds ompl_bounds(2);
+        ompl_bounds.setLow(0, 0.0);
+        ompl_bounds.setHigh(0, height);
+        ompl_bounds.setLow(1, 0.0);
+        ompl_bounds.setHigh(1, width);
+
+        ompl::base::StateSpacePtr ompl_space(new ompl::base::RealVectorStateSpace(2));
+        ompl_space->as<ompl::base::RealVectorStateSpace>()->setBounds(ompl_bounds);
+
+        // TODO: Copy-paste the for-loop above and modify it so that it creates the state space's obstacles properly!!!
+
+        // TODO: Create the EpicOMPLStateValidityChecker class in the header.
+
+        ompl::base::SpaceInformationPtr ompl_space_info(new ompl::base::SpaceInformation(ompl_space));
+        ompl_space_info->setStateValidityChecker(ompl::base::StateValidityCheckerPtr(new EpicOMPLStateValidityChecker(ompl_space_info)));
+        ompl_space_info->setup();
+
+        ompl::base::ScopedState<> start_state(ompl_space);
+        start_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0] = start_location.second;
+        start_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1] = start_location.first;
+
+        ompl::base::ScopedState<> goal_state(ompl_space);
+        goal_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0] = goal_location.second;
+        goal_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1] = goal_location.first;
+
+        ompl::base::ProblemDefinitionPtr ompl_problem_def(new ompl::base::ProblemDefinition(ompl_space_info));
+        ompl_problem_def->setOptimizationObjective(omplGetPathLengthObjective(ompl_space_info));
+
+        if (algorithm == EPIC_ALGORITHM_RRT_CONNECT) {
+            ompl_planner = ompl::base::PlannerPtr(new ompl::geometric::RRTConnect(ompl_space_info));
+        } else {
+        }
     } else {
     }
 }
@@ -406,49 +472,59 @@ bool EpicNavigationNode::srvAddGoals(epic::ModifyGoals::Request &req, epic::Modi
         return false;
     }
 
-    std::vector<unsigned int> v;
-    std::vector<unsigned int> types;
+    if (algorithm == EPIC_ALGORITHM_HARMONIC) {
+        std::vector<unsigned int> v;
+        std::vector<unsigned int> types;
 
-    for (unsigned int i = 0; i < req.goals.size(); i++) {
-        float x = 0.0f;
-        float y = 0.0f;
+        for (unsigned int i = 0; i < req.goals.size(); i++) {
+            float x = 0.0f;
+            float y = 0.0f;
 
-        worldToMap(req.goals[i].pose.position.x, req.goals[i].pose.position.y, x, y);
+            worldToMap(req.goals[i].pose.position.x, req.goals[i].pose.position.y, x, y);
 
-        // If the goal location is an obstacle, then do not let it add a goal here.
-        if (isCellGoal((unsigned int)(x + 0.5f), (unsigned int)(y + 0.5f))) {
-            continue;
+            // If the goal location is an obstacle, then do not let it add a goal here.
+            if (isCellGoal((unsigned int)(x + 0.5f), (unsigned int)(y + 0.5f))) {
+                continue;
+            }
+
+            v.push_back((unsigned int) x);
+            v.push_back((unsigned int) y);
+            types.push_back(EPIC_CELL_TYPE_GOAL);
         }
 
-        v.push_back((unsigned int) x);
-        v.push_back((unsigned int) y);
-        types.push_back(EPIC_CELL_TYPE_GOAL);
-    }
-
-    if (v.size() == 0) {
-        ROS_WARN("Warning[EpicNavigationNode::srvAddGoals]: Attempted to add goal(s) inside obstacles. No goals added.");
-        res.success = false;
-        return false;
-    }
-
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvAddGoals]: Failed to set the cells on the GPU.");
+        if (v.size() == 0) {
+            ROS_WARN("Warning[EpicNavigationNode::srvAddGoals]: Attempted to add goal(s) inside obstacles. No goals added.");
             res.success = false;
             return false;
+        }
+
+        // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
+        // that vector objects store contiguously in memory.
+        if (gpu) {
+            if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvAddGoals]: Failed to set the cells on the GPU.");
+                res.success = false;
+                return false;
+            }
+        } else {
+            if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvAddGoals]: Failed to set the cells on the CPU.");
+                res.success = false;
+                return false;
+            }
+        }
+
+        v.clear();
+        types.clear();
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+        if (req.goals.size() >= 2) {
+            goal_location.first = req.goals[0].pose.position.x;
+            goal_location.second = req.goals[0].pose.position.y;
+            goal_assigned = true;
         }
     } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvAddGoals]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
-        }
     }
-
-    v.clear();
-    types.clear();
 
     res.success = true;
 
@@ -463,40 +539,51 @@ bool EpicNavigationNode::srvRemoveGoals(epic::ModifyGoals::Request &req, epic::M
         return false;
     }
 
-    std::vector<unsigned int> v;
-    std::vector<unsigned int> types;
+    if (algorithm == EPIC_ALGORITHM_HARMONIC) {
+        std::vector<unsigned int> v;
+        std::vector<unsigned int> types;
 
-    // Note: Removing goals turns them into free space. Recall, however, that goals can
-    // only be added on free space (above).
-    for (unsigned int i = 0; i < req.goals.size(); i++) {
-        float x = 0.0f;
-        float y = 0.0f;
+        // Note: Removing goals turns them into free space. Recall, however, that goals can
+        // only be added on free space (above).
+        for (unsigned int i = 0; i < req.goals.size(); i++) {
+            float x = 0.0f;
+            float y = 0.0f;
 
-        worldToMap(req.goals[i].pose.position.x, req.goals[i].pose.position.y, x, y);
+            worldToMap(req.goals[i].pose.position.x, req.goals[i].pose.position.y, x, y);
 
-        v.push_back((unsigned int) x);
-        v.push_back((unsigned int) y);
-        types.push_back(EPIC_CELL_TYPE_FREE);
-    }
+            v.push_back((unsigned int) x);
+            v.push_back((unsigned int) y);
+            types.push_back(EPIC_CELL_TYPE_FREE);
+        }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvRemoveGoals]: Failed to set the cells on the GPU.");
-            res.success = false;
-            return false;
+        // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
+        // that vector objects store contiguously in memory.
+        if (gpu) {
+            if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvRemoveGoals]: Failed to set the cells on the GPU.");
+                res.success = false;
+                return false;
+            }
+        } else {
+            if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvRemoveGoals]: Failed to set the cells on the CPU.");
+                res.success = false;
+                return false;
+            }
+        }
+
+        v.clear();
+        types.clear();
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+        for (unsigned int i = 0; i < req.goals.size(); i++) {
+            if (req.goals[i].pose.position.x == goal_location.first && req.goals[i].pose.position.y == goal_location.second) {
+                goal_assigned = false;
+                break;
+            }
         }
     } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvRemoveGoals]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
-        }
     }
-
-    v.clear();
-    types.clear();
 
     res.success = true;
 
@@ -511,34 +598,47 @@ bool EpicNavigationNode::srvSetCells(epic::SetCells::Request &req, epic::SetCell
         return false;
     }
 
-    std::vector<unsigned int> v;
-    std::vector<unsigned int> types;
+    if (algorithm == EPIC_ALGORITHM_HARMONIC) {
+        std::vector<unsigned int> v;
+        std::vector<unsigned int> types;
 
-    for (unsigned int i = 0; i < req.v.size(); i++) {
-        v.push_back((unsigned int)req.v[i]);
-    }
-    for (unsigned int i = 0; i < req.types.size(); i++) {
-        types.push_back((unsigned int)req.types[i]);
-    }
+        for (unsigned int i = 0; i < req.v.size(); i++) {
+            v.push_back((unsigned int)req.v[i]);
+        }
+        for (unsigned int i = 0; i < req.types.size(); i++) {
+            types.push_back((unsigned int)req.types[i]);
+        }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvSetCells]: Failed to set the cells on the GPU.");
-            res.success = false;
-            return false;
+        // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
+        // that vector objects store contiguously in memory.
+        if (gpu) {
+            if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvSetCells]: Failed to set the cells on the GPU.");
+                res.success = false;
+                return false;
+            }
+        } else {
+            if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
+                ROS_ERROR("Error[EpicNavigationNode::srvSetCells]: Failed to set the cells on the CPU.");
+                res.success = false;
+                return false;
+            }
+        }
+
+        v.clear();
+        types.clear();
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+        for (unsigned int i = 0; i < req.types.size(); i++) {
+            if (req.types[i] == EPIC_CELL_TYPE_GOAL) {
+                goal_location.first = req.v[2 * i + 0];
+                goal_location.second = req.v[2 * i + 1];
+                goal_assigned = true;
+                break;
+            }
         }
     } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNode::srvSetCells]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
-        }
     }
-
-    v.clear();
-    types.clear();
 
     res.success = true;
 
@@ -569,16 +669,28 @@ bool EpicNavigationNode::srvComputePath(epic::ComputePath::Request &req, epic::C
     unsigned int k = 0;
     float *raw_path = nullptr;
 
-    int result = harmonic_compute_path_2d_cpu(&harmonic, x, y, req.step_size, req.precision, req.max_length, k, raw_path);
+    if (algorithm == EPIC_ALGORITHM_HARMONIC) {
+        int result = harmonic_compute_path_2d_cpu(&harmonic, x, y, req.step_size, req.precision, req.max_length, k, raw_path);
 
-    if (result != EPIC_SUCCESS) {
-        ROS_ERROR("Error[EpicNavigationNode::srvComputePath]: Failed to compute the path.");
+        if (result != EPIC_SUCCESS) {
+            ROS_ERROR("Error[EpicNavigationNode::srvComputePath]: Failed to compute the path.");
 
-        if (raw_path != nullptr) {
-            delete [] raw_path;
+            if (raw_path != nullptr) {
+                delete [] raw_path;
+            }
+
+            return false;
         }
-
-        return false;
+    } else if (algorithm < NUM_EPIC_ALGORITHMS) {
+        // All other algorithms use OMPL.
+        if ((bool)ompl_planner_status) {
+            // TODO: If an approximate or exact solution was found, then populate raw_path. Otherwise, leave it empty.
+            //k = ???
+            //raw_path = new float[2 * k];
+            //for (...
+            // ompl_planner.get_path...???
+        }
+    } else {
     }
 
     res.path.header.frame_id = req.start.header.frame_id;

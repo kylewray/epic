@@ -17,8 +17,11 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
-## System dependencies are found with CMake's conventions
+# System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(
+  OMPL # This is separate because OMPL is not a catkin package.
+)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -112,7 +115,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES epic
   CATKIN_DEPENDS message_runtime
-#  DEPENDS system_lib
+  DEPENDS ompl #system_lib
 )
 
 ###########
@@ -124,16 +127,15 @@ catkin_package(
 include_directories(
   include
   ../../../../include
-  #/home/axiom/Development/epic/include
+  ${OMPL_INCLUDE_DIRS}
 )
 
 # Also include link directories...
 link_directories(../../../../lib)
-#link_directories(/home/axiom/Development/epic/lib)
 
 # Declare a C++ library
 add_library(epic_nav_core_plugin
-    src/epic_nav_core_plugin.cpp
+  src/epic_nav_core_plugin.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -143,8 +145,8 @@ add_library(epic_nav_core_plugin
 
 # Declare a C++ executable
 add_executable(epic_navigation_node
-    src/epic_navigation_node.cpp
-    src/epic_navigation_node_main.cpp
+  src/epic_navigation_node.cpp
+  src/epic_navigation_node_main.cpp
 )
 
 # Add cmake target dependencies of the executable
@@ -160,6 +162,7 @@ target_link_libraries(epic_nav_core_plugin
 target_link_libraries(epic_navigation_node
   ${catkin_LIBRARIES}
   epic
+  ${OMPL_LIBRARIES}
 )
 
 #############

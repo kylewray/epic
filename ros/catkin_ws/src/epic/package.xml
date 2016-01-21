@@ -51,6 +51,8 @@
   <depend>message_generation</depend>
   <depend>message_runtime</depend>
 
+  <depend>ompl</depend>
+
   <exec_depend>libepic</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
