@@ -30,12 +30,12 @@
 
 #include <nav_msgs/Path.h>
 
-#include <harmonic/harmonic_cpu.h>
-#include <harmonic/harmonic_gpu.h>
-#include <harmonic/harmonic_model_gpu.h>
-#include <harmonic/harmonic_path_cpu.h>
-#include <constants.h>
-#include <error_codes.h>
+#include <epic/harmonic/harmonic_cpu.h>
+#include <epic/harmonic/harmonic_gpu.h>
+#include <epic/harmonic/harmonic_model_gpu.h>
+#include <epic/harmonic/harmonic_path_cpu.h>
+#include <epic/constants.h>
+#include <epic/error_codes.h>
 
 #include <stdio.h>
 

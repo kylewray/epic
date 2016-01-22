@@ -22,9 +22,9 @@
  */
 
 
-#include "harmonic_legacy_cpu.h"
-#include "constants.h"
-#include "error_codes.h"
+#include <epic/harmonic/harmonic_legacy_cpu.h>
+#include <epic/constants.h>
+#include <epic/error_codes.h>
 
 #include <iostream>
 #include <cmath>

@@ -19,9 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 # System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(
-  OMPL # This is separate because OMPL is not a catkin package.
-)
+
+#find_package(OMPL) # This is separate because OMPL is not a catkin package.            # STEP 1/5 FOR OMPL SUPPORT
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -115,7 +114,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES epic
   CATKIN_DEPENDS message_runtime
-  DEPENDS ompl #system_lib
+#  DEPENDS ompl #system_lib                     # STEP 2/5 FOR OMPL SUPPORT
 )
 
 ###########
@@ -127,7 +126,7 @@ catkin_package(
 include_directories(
   include
   ../../../../include
-  ${OMPL_INCLUDE_DIRS}
+#  ${OMPL_INCLUDE_DIRS}                         # STEP 3/5 FOR OMPL SUPPORT
 )
 
 # Also include link directories...
@@ -145,7 +144,8 @@ add_library(epic_nav_core_plugin
 
 # Declare a C++ executable
 add_executable(epic_navigation_node
-  src/epic_navigation_node.cpp
+  src/epic_navigation_node_harmonic.cpp
+#  src/epic_navigation_node_ompl.cpp            # STEP 4/5 FOR OMPL SUPPORT
   src/epic_navigation_node_main.cpp
 )
 
@@ -162,7 +162,7 @@ target_link_libraries(epic_nav_core_plugin
 target_link_libraries(epic_navigation_node
   ${catkin_LIBRARIES}
   epic
-  ${OMPL_LIBRARIES}
+#  ${OMPL_LIBRARIES}                            # STEP 5/5 FOR OMPL SUPPORT
 )
 
 #############

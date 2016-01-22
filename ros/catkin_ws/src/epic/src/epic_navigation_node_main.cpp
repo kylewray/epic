@@ -24,7 +24,8 @@
 
 #include <ros/ros.h>
 
-#include <epic/epic_navigation_node.h>
+#include <epic/epic_navigation_node_harmonic.h>
+//#include <epic/epic_navigation_node_ompl.h>
 
 int main(int argc, char **argv)
 {
@@ -33,8 +34,8 @@ int main(int argc, char **argv)
     ros::NodeHandle node_handle("~");
 
     // TODO: Read a ROS parameter for this node to assign the desired algorithm for EpicNavigation.
-    epic::EpicNavigationNode epic_navigation_node(node_handle);
-    epic_navigation_node.initMsgs();
+    epic::EpicNavigationNodeHarmonic epic_navigation_node_harmonic(node_handle);
+    epic_navigation_node_harmonic.initMsgs();
 
     // TODO: Read a ROS parameter for the number of update steps of the algorithm at a time.
     unsigned int num_update_steps = 50;
@@ -47,7 +48,7 @@ int main(int argc, char **argv)
         ros::spinOnce();
 
         // Perform an update of the harmonic function or other navigation planning algorithm.
-        epic_navigation_node.update(num_update_steps);
+        epic_navigation_node_harmonic.update(num_update_steps);
 
         // Sleep and let other processes think.
         rate.sleep();

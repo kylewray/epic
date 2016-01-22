@@ -22,9 +22,9 @@
  */
 
 
-#include "harmonic.h"
-#include "harmonic_model_gpu.h"
-#include "error_codes.h"
+#include <epic/harmonic/harmonic.h>
+#include <epic/harmonic/harmonic_model_gpu.h>
+#include <epic/error_codes.h>
 
 #include <stdio.h>
 

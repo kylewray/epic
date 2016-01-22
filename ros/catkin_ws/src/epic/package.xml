@@ -58,7 +58,7 @@
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-    <nav_core plugin="${prefix}/epic_nav_core_plugin.xml" />
+    <nav_core plugin="${prefix}/plugins/epic_nav_core_plugin.xml" />
 
   </export>
 

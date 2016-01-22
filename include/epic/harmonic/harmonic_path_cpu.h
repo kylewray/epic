@@ -26,9 +26,9 @@
 #define HARMONIC_PATH_CPU_H
 
 
-namespace epic {
-
 #include "harmonic.h"
+
+namespace epic {
 
 /**
  *  Compute the potential in two dimensions at an (x, y) location which is

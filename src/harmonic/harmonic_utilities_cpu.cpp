@@ -22,10 +22,10 @@
  */
 
 
-#include "harmonic.h"
-#include "harmonic_utilities_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <epic/harmonic/harmonic.h>
+#include <epic/harmonic/harmonic_utilities_cpu.h>
+#include <epic/error_codes.h>
+#include <epic/constants.h>
 
 #include <iostream>
 #include <stdio.h>

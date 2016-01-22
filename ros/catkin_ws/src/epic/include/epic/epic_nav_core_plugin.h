@@ -35,7 +35,7 @@
 
 #include <angles/angles.h>
 
-#include <harmonic/harmonic.h>
+#include <epic/harmonic/harmonic.h>
 
 using std::string;
 
