@@ -38,10 +38,11 @@ namespace epic {
  *  @param  locked  The locked (xy array): 1 for locked, 0 for unlocked.
  *  @param  u       The potentials (xy array): 0 for goal, 1 for obstacle, and in range (0, 1)
  *                  otherwise. Stored in row-major form (e.g., y * w + x). This will be modified.
+ *  @param  iter    The number of iterations until convergence. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsilon,
-        float omega, unsigned int *locked, float *u);
+        float omega, unsigned int *locked, float *u, unsigned int &iter);
 
 /**
  *  Execute a Successive Over-Relaxation (SOR) harmonic function solver until convergence.
@@ -53,10 +54,11 @@ extern "C" int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, 
  *  @param  locked  The locked (xy array): 1 for locked, 0 for unlocked.
  *  @param  u       The potentials (xy array): 0 for goal, 1 for obstacle, and in range (0, 1)
  *                  otherwise. Stored in row-major form (e.g., y * w + x). This will be modified.
+ *  @param  iter    The number of iterations until convergence. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h, double epsilon,
-        double omega, unsigned int *locked, double *u);
+        double omega, unsigned int *locked, double *u, unsigned int &iter);
 
 /**
  *  Execute a Successive Over-Relaxation (SOR) harmonic function solver until convergence.
@@ -68,10 +70,11 @@ extern "C" int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h,
  *  @param  locked  The locked (xy array): 1 for locked, 0 for unlocked.
  *  @param  u       The potentials (xy array): 0 for goal, 1 for obstacle, and in range (0, 1)
  *                  otherwise. Stored in row-major form (e.g., y * w + x). This will be modified.
+ *  @param  iter    The number of iterations until convergence. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int harmonic_legacy_sor_2d_long_double_cpu(unsigned int w, unsigned int h, long double epsilon,
-        long double omega, unsigned int *locked, long double *u);
+        long double omega, unsigned int *locked, long double *u, unsigned int &iter);
 
 };
 

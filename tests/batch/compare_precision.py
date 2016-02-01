@@ -41,23 +41,14 @@ LONG_DOUBLE_COLOR = 120
 FREE_SPACE_COLOR = 150
 
 
-#wideMazePath = os.path.join(thisFilePath, "basic.png")
-#wideMazePath = os.path.join(thisFilePath, "c_space.png")
-#wideMazePath = os.path.join(thisFilePath, "maze_1.png")
-wideMazePath = os.path.join(thisFilePath, "maze_4.png")
-
-harmonicMap = HarmonicMap()
-harmonicMap.load(wideMazePath)
-#harmonicMap.show()
-
-
-def compute_potential(u, x, y):
+def compute_potential(harmonicMap, u, x, y):
     """ Compute the potential at a location.
 
         Parameters:
-            u   --  The potentials (row-major 1-d array).
-            x   --  The x-axis location.
-            y   --  The y-axis location.
+            harmonicMap --  The HarmonicMap object.
+            u           --  The potentials (row-major 1-d array).
+            x           --  The x-axis location.
+            y           --  The y-axis location.
 
         Returns:
             The potential at the location.
@@ -82,12 +73,13 @@ def compute_potential(u, x, y):
     return (1.0 - beta) * one + beta * two
 
 
-def color_valid_gradient_in_image(u, c):
+def color_valid_gradient_in_image(harmonicMap, u, c):
     """ Color the image on all cells with a valid gradient.
 
         Parameters:
-            u   --  The potentials (row-major 1-d array).
-            c   --  The grayscale color (0 to 255) to paint on the image.
+            harmonicMap --  The HarmonicMap object.
+            u           --  The potentials (row-major 1-d array).
+            c           --  The grayscale color (0 to 255) to paint on the image.
     """
 
     originalColorMapping = dict()
@@ -103,10 +95,10 @@ def color_valid_gradient_in_image(u, c):
 
             precision = 0.5
 
-            value0 = compute_potential(u, x - precision, y)
-            value1 = compute_potential(u, x + precision, y)
-            value2 = compute_potential(u, x, y - precision)
-            value3 = compute_potential(u, x, y + precision)
+            value0 = compute_potential(harmonicMap, u, x - precision, y)
+            value1 = compute_potential(harmonicMap, u, x + precision, y)
+            value2 = compute_potential(harmonicMap, u, x, y - precision)
+            value3 = compute_potential(harmonicMap, u, x, y + precision)
 
             partialX = (value1 - value0) / (2.0 * precision)
             partialY = (value3 - value2) / (2.0 * precision)
@@ -117,8 +109,8 @@ def color_valid_gradient_in_image(u, c):
                 valid = False
 
             # Draw color where precision is valid.
+            originalColorMapping[(x, y)] = harmonicMap.originalImage[y, x]
             if valid:
-                originalColorMapping[(x, y)] = harmonicMap.originalImage[y, x]
                 harmonicMap.originalImage[y, x] = c
 
             # Uncomment to instead draw the potential.
@@ -176,53 +168,64 @@ def color_valid_gradient_in_image(u, c):
             if not validStreamline:
                 harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
 
-array_type_m_uint = ct.c_uint * (harmonicMap.originalImage.size)
-locked = array_type_m_uint(*np.array([[int(harmonicMap.originalImage[y, x] == 0 or \
-                                            harmonicMap.originalImage[y, x] == 255) \
+
+if __name__ == "__main__":
+    #mapFilename = os.path.join(thisFilePath, "wide_maze.png")
+    mapFilename = os.path.join(thisFilePath, "muri_map.png")
+
+    harmonicMap = HarmonicMap()
+    harmonicMap.load(mapFilename)
+    #harmonicMap.show()
+
+    numIterations = ct.c_uint(int(0))
+
+    array_type_m_uint = ct.c_uint * (harmonicMap.originalImage.size)
+    locked = array_type_m_uint(*np.array([[int(harmonicMap.originalImage[y, x] == 0 or \
+                                                harmonicMap.originalImage[y, x] == 255) \
+                                            for x in range(harmonicMap.originalImage.shape[1])] \
+                                        for y in range(harmonicMap.originalImage.shape[0])]).flatten())
+
+    print("Computing SOR float...")
+    array_type_m_float = ct.c_float * (harmonicMap.originalImage.size)
+    uFloat = array_type_m_float(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
                                         for x in range(harmonicMap.originalImage.shape[1])] \
                                     for y in range(harmonicMap.originalImage.shape[0])]).flatten())
+    result = eh._epic.harmonic_legacy_sor_2d_float_cpu(harmonicMap.originalImage.shape[1],
+                                                       harmonicMap.originalImage.shape[0],
+                                                       1e-4, 1.5, locked, uFloat, ct.byref(numIterations))
 
-print("Computing SOR float...")
-array_type_m_float = ct.c_float * (harmonicMap.originalImage.size)
-uFloat = array_type_m_float(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
-                                    for x in range(harmonicMap.originalImage.shape[1])] \
-                                for y in range(harmonicMap.originalImage.shape[0])]).flatten())
-result = eh._epic.harmonic_legacy_sor_2d_float_cpu(harmonicMap.originalImage.shape[1],
-                                                   harmonicMap.originalImage.shape[0],
-                                                   1e-4, 1.5, locked, uFloat)
+    print("Computing SOR double...")
+    array_type_m_double = ct.c_double * (harmonicMap.originalImage.size)
+    uDouble = array_type_m_double(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
+                                        for x in range(harmonicMap.originalImage.shape[1])] \
+                                    for y in range(harmonicMap.originalImage.shape[0])]).flatten())
+    result = eh._epic.harmonic_legacy_sor_2d_double_cpu(harmonicMap.originalImage.shape[1],
+                                                        harmonicMap.originalImage.shape[0],
+                                                        1e-4, 1.5, locked, uDouble, ct.byref(numIterations))
 
-print("Computing SOR double...")
-array_type_m_double = ct.c_double * (harmonicMap.originalImage.size)
-uDouble = array_type_m_double(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
-                                    for x in range(harmonicMap.originalImage.shape[1])] \
-                                for y in range(harmonicMap.originalImage.shape[0])]).flatten())
-result = eh._epic.harmonic_legacy_sor_2d_double_cpu(harmonicMap.originalImage.shape[1],
-                                                    harmonicMap.originalImage.shape[0],
-                                                    1e-4, 1.5, locked, uDouble)
+    #print("Computing SOR long double...")
+    #array_type_m_longdouble = ct.c_longdouble * (harmonicMap.originalImage.size)
+    #uLongDouble = array_type_m_longdouble(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
+    #                                    for x in range(harmonicMap.originalImage.shape[1])] \
+    #                                for y in range(harmonicMap.originalImage.shape[0])]).flatten())
+    #result = eh._epic.harmonic_legacy_sor_2d_long_double_cpu(harmonicMap.originalImage.shape[1],
+    #                                                         harmonicMap.originalImage.shape[0],
+    #                                                         1e-4, 1.5, locked, uLongDouble, ct.byref(numIterations))
 
-#print("Computing SOR long double...")
-#array_type_m_longdouble = ct.c_longdouble * (harmonicMap.originalImage.size)
-#uLongDouble = array_type_m_longdouble(*np.array([[1.0 - float(harmonicMap.originalImage[y, x] == 255) \
-#                                    for x in range(harmonicMap.originalImage.shape[1])] \
-#                                for y in range(harmonicMap.originalImage.shape[0])]).flatten())
-#result = eh._epic.harmonic_legacy_sor_2d_long_double_cpu(harmonicMap.originalImage.shape[1],
-#                                                         harmonicMap.originalImage.shape[0],
-#                                                         1e-4, 1.5, locked, uLongDouble)
+    print("Computing Log-Space GS GPU...")
+    timing = harmonicMap.solve(process='gpu', epsilon=1e-4)
 
-print("Computing Log-Space GS GPU...")
-timing = harmonicMap.solve(process='gpu', epsilon=1e-4)
+    #print("Coloring map with long double colors...")
+    #color_valid_gradient_in_image(uLongDouble, LONG_DOUBLE_COLOR)
 
-#print("Coloring map with long double colors...")
-#color_valid_gradient_in_image(uLongDouble, LONG_DOUBLE_COLOR)
+    print("Coloring map with double colors...")
+    color_valid_gradient_in_image(harmonicMap, uDouble, DOUBLE_COLOR)
 
-print("Coloring map with double colors...")
-color_valid_gradient_in_image(uDouble, DOUBLE_COLOR)
+    print("Coloring map with float colors...")
+    color_valid_gradient_in_image(harmonicMap, uFloat, FLOAT_COLOR)
 
-print("Coloring map with float colors...")
-color_valid_gradient_in_image(uFloat, FLOAT_COLOR)
+    harmonicMap.hold = True
+    harmonicMap.show()
 
-harmonicMap.hold = True
-harmonicMap.show()
-
-print("Done.")
+    print("Done.")
 

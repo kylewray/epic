@@ -112,7 +112,7 @@ __global__ void harmonic_update_and_check_2d_gpu(unsigned int *m, float *u, unsi
 
     // At the end, perform a reduction to efficiently compute the maximal delta for this thread block.
     for (unsigned int index = blockDim.x / 2; index > 0; index >>= 1) {
-        if (threadIdx.x < index) {
+        if (threadIdx.x < index && threadIdx.x + index < blockDim.x) {
             if (deltaLocalMax[threadIdx.x] < deltaLocalMax[threadIdx.x + index]) {
                 deltaLocalMax[threadIdx.x] = deltaLocalMax[threadIdx.x + index];
             }
@@ -141,7 +141,7 @@ __global__ void harmonic_compute_max_delta_gpu(unsigned int numBlocks, float *de
     // Do a final reduction on these values to efficiently compute the true maximal delta.
     // Note: Afterwards, delta[0] will hold the max delta over all cells.
     for (unsigned int index = blockDim.x / 2; index > 0; index >>= 1) {
-        if (threadIdx.x < index && threadIdx.x < numBlocks && threadIdx.x + index < numBlocks) {
+        if (threadIdx.x < index && threadIdx.x + index < numBlocks) {
             //delta[threadIdx.x] = fmaxf(delta[threadIdx.x], delta[threadIdx.x + index]);
             if (delta[threadIdx.x] < delta[threadIdx.x + index]) {
                 delta[threadIdx.x] = delta[threadIdx.x + index];
@@ -204,9 +204,6 @@ int harmonic_complete_gpu(Harmonic *harmonic, unsigned int numThreads)
 
 int harmonic_initialize_gpu(Harmonic *harmonic, unsigned int numThreads)
 {
-    // Reset the current iteration.
-    harmonic->currentIteration = 0;
-
     // Ensure the data is valid.
     if (harmonic->n == 0 || harmonic->m == nullptr || harmonic->d_delta != nullptr) {
         fprintf(stderr, "Error[harmonic_initialize_gpu]: %s\n", "Invalid input.");
@@ -245,6 +242,9 @@ int harmonic_execute_gpu(Harmonic *harmonic, unsigned int numThreads)
                     "Must specficy a number of threads divisible by 32 (the number of threads in a warp).");
         return EPIC_ERROR_INVALID_CUDA_PARAM;
     }
+
+    // Reset the current iteration.
+    harmonic->currentIteration = 0;
 
     result = harmonic_initialize_gpu(harmonic, numThreads);
     if (result != EPIC_SUCCESS) {
@@ -311,9 +311,6 @@ int harmonic_uninitialize_gpu(Harmonic *harmonic)
 
     result = EPIC_SUCCESS;
 
-    // Reset the current iteration.
-    harmonic->currentIteration = 0;
-
     if (harmonic->d_delta != nullptr) {
         if (cudaFree(harmonic->d_delta) != cudaSuccess) {
             fprintf(stderr, "Error[harmonic_uninitialize_gpu]: %s\n",
@@ -364,8 +361,7 @@ int harmonic_update_and_check_gpu(Harmonic *harmonic, unsigned int numThreads)
     unsigned int numBlocks = harmonic_compute_num_blocks_gpu(harmonic, numThreads);
 
     if (harmonic->n == 2) {
-        harmonic_update_and_check_2d_gpu<<< numBlocks, numThreads,
-                                            numThreads * sizeof(float) >>>(
+        harmonic_update_and_check_2d_gpu<<< numBlocks, numThreads, numThreads * sizeof(float) >>>(
                                                 harmonic->d_m, harmonic->d_u, harmonic->d_locked,
                                                 harmonic->currentIteration, harmonic->d_delta);
     } else if (harmonic->n == 3) {

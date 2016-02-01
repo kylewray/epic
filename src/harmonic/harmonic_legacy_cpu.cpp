@@ -34,12 +34,12 @@ namespace epic {
 #define MIN_ITERATIONS 1000
 
 int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsilon,
-    float omega, unsigned int *locked, float *u)
+    float omega, unsigned int *locked, float *u, unsigned int &iter)
 {
     float delta = epsilon + 1.0f;
-    unsigned int i = 0;
+    iter = 0;
 
-    while (delta >= epsilon || i < MIN_ITERATIONS) {
+    while (delta >= epsilon || iter < MIN_ITERATIONS) {
         delta = 0.0f;
 
         for (unsigned int y = 1; y < h - 1; y++) {
@@ -60,7 +60,7 @@ int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsil
             }
         }
 
-        i++;
+        iter++;
     }
 
     return EPIC_SUCCESS;
@@ -68,12 +68,12 @@ int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsil
 
 
 int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h, double epsilon,
-    double omega, unsigned int *locked, double *u)
+    double omega, unsigned int *locked, double *u, unsigned int &iter)
 {
     double delta = epsilon + 1.0;
-    unsigned int i = 0;
+    iter = 0;
 
-    while (delta >= epsilon || i < MIN_ITERATIONS) {
+    while (delta >= epsilon || iter < MIN_ITERATIONS) {
         delta = 0.0;
 
         for (unsigned int y = 1; y < h - 1; y++) {
@@ -94,7 +94,7 @@ int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h, double eps
             }
         }
 
-        i++;
+        iter++;
     }
 
     return EPIC_SUCCESS;
@@ -102,12 +102,12 @@ int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h, double eps
 
 
 int harmonic_legacy_sor_2d_long_double_cpu(unsigned int w, unsigned int h, long double epsilon,
-    long double omega, unsigned int *locked, long double *u)
+    long double omega, unsigned int *locked, long double *u, unsigned int &iter)
 {
     long double delta = epsilon + 1.0;
-    unsigned int i = 0;
+    iter = 0;
 
-    while (delta >= epsilon || i < MIN_ITERATIONS) {
+    while (delta >= epsilon || iter < MIN_ITERATIONS) {
         delta = 0.0;
 
         for (unsigned int y = 1; y < h - 1; y++) {
@@ -128,7 +128,7 @@ int harmonic_legacy_sor_2d_long_double_cpu(unsigned int w, unsigned int h, long 
             }
         }
 
-        i++;
+        iter++;
     }
 
     return EPIC_SUCCESS;
