@@ -36,14 +36,16 @@ import epic.epic_harmonic as eh
 import compare_precision as cp
 
 
-precision = 1e-1
+precision = 1e-3
 
 domains = [
-            #{'name': "MURI Map", 'filename': os.path.join(thisFilePath, "muri_map.png")},
-            #{'name': "Small Mine", 'filename': os.path.join(thisFilePath, "small_mine.png")},
-            #{'name': "Large Mine", 'filename': os.path.join(thisFilePath, "large_mine.png")},
-            {'name': "Small Maze", 'filename': os.path.join(thisFilePath, "small_maze.png")},
-            #{'name': "Large Maze", 'filename': os.path.join(thisFilePath, "large_maze.png")},
+            {'name': "UMass", 'filename': os.path.join(thisFilePath, "umass.png")},
+            {'name': "Willow", 'filename': os.path.join(thisFilePath, "willow_garage.png")},
+            {'name': "Mine S", 'filename': os.path.join(thisFilePath, "small_mine.png")},
+            {'name': "Mine L", 'filename': os.path.join(thisFilePath, "large_mine.png")},
+            {'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
+            {'name': "Maze S", 'filename': os.path.join(thisFilePath, "small_maze.png")},
+            {'name': "Maze L", 'filename': os.path.join(thisFilePath, "large_maze.png")},
           ]
 
 
@@ -83,9 +85,6 @@ def cpu_sor(harmonicMap):
 
     cp.color_valid_gradient_in_image(harmonicMap, uDouble, cp.DOUBLE_COLOR)
 
-    harmonicMap.hold = True
-    harmonicMap.show()
-
     numValidStreamlines = 0
     numStreamlineChecks = 0
 
@@ -124,11 +123,13 @@ if __name__ == "__main__":
 
             f.write("%s,%i," % (img['name'],
                         harmonicMap.originalImage.shape[0] * harmonicMap.originalImage.shape[1]))
+            f.flush()
 
             percentValid, timePerUpdate, timeToConverge = cpu_sor(harmonicMap)
             f.write("%.5f," % (percentValid))
             f.write("%.5f," % (timePerUpdate))
             f.write("%.5f," % (timeToConverge))
+            f.flush()
 
             print(".", end='')
             sys.stdout.flush()
@@ -140,6 +141,7 @@ if __name__ == "__main__":
 
             f.write("%.5f," % (timing[0] / int(harmonicMap.currentIteration)))
             f.write("%.5f," % (timing[0]))
+            f.flush()
 
             print(".", end='')
             sys.stdout.flush()
@@ -150,7 +152,9 @@ if __name__ == "__main__":
             timing = harmonicMap.solve(process='gpu', epsilon=precision)
 
             f.write("%.5f," % (timing[0] / int(harmonicMap.currentIteration)))
-            f.write("%.5f\n" % (timing[0]))
+            f.write("%.5f" % (timing[0]))
+            f.write("\n")
+            f.flush()
 
             print(".")
             sys.stdout.flush()

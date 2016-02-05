@@ -34,7 +34,6 @@ from epic.harmonic_map import *
 
 import epic.epic_harmonic as eh
 
-
 FLOAT_COLOR = 60
 DOUBLE_COLOR = 90
 LONG_DOUBLE_COLOR = 120
@@ -93,12 +92,18 @@ def color_valid_gradient_in_image(harmonicMap, u, c):
             # Check if this pixel has a valid gradient; it is not valid without one.
             valid = True
 
-            precision = 0.5
+            precision = 0.25
+
+            x += 0.5
+            y += 0.5
 
             value0 = compute_potential(harmonicMap, u, x - precision, y)
             value1 = compute_potential(harmonicMap, u, x + precision, y)
             value2 = compute_potential(harmonicMap, u, x, y - precision)
             value3 = compute_potential(harmonicMap, u, x, y + precision)
+
+            x = int(x)
+            y = int(y)
 
             partialX = (value1 - value0) / (2.0 * precision)
             partialY = (value3 - value2) / (2.0 * precision)
@@ -120,8 +125,9 @@ def color_valid_gradient_in_image(harmonicMap, u, c):
     # Compute all pixels that can reach a goal over these valid colored pixels.
     closedset = set()
     openset = [(xi, yj)
-                for xi, yj in it.product(range(1, harmonicMap.originalImage.shape[1] - 1), range(1, harmonicMap.originalImage.shape[0] - 1))
-            if harmonicMap.originalImage[yj, xi] == 255]
+                for xi, yj in it.product(range(1, harmonicMap.originalImage.shape[1] - 1),
+                                         range(1, harmonicMap.originalImage.shape[0] - 1))
+                            if harmonicMap.originalImage[yj, xi] == 255]
 
     while len(openset) > 0:
         node = openset.pop()
@@ -148,30 +154,48 @@ def color_valid_gradient_in_image(harmonicMap, u, c):
 
     # Lastly, go over all these pixels one last time and compute a streamline from them. If the streamline passes
     # through a pixel that is not this color, then reset this initial starting pixel.
+    invalidLocations = list()
+
     for y in range(1, harmonicMap.originalImage.shape[0] - 1):
         for x in range(1, harmonicMap.originalImage.shape[1] - 1):
             # Obstacles and goals are skipped. Also, skip non-c-pixels.
             if harmonicMap.originalImage[y, x] != c:
                 continue
 
+            # Skip cells that border on obstacles or goals.
+            if harmonicMap.locked[(y - 1) * harmonicMap.m[1] + x] == 1 or \
+                    harmonicMap.locked[(y + 1) * harmonicMap.m[1] + x] == 1 or \
+                    harmonicMap.locked[y * harmonicMap.m[1] + (x - 1)] == 1 or \
+                    harmonicMap.locked[y * harmonicMap.m[1] + (x + 1)] == 1:
+                continue
+
             validStreamline = True
             try:
                 path = harmonicMap._compute_streamline(x, y)
                 for xi, yj in path:
-                    if harmonicMap.originalImage[int(yj), int(xi)] != c:
+                    if not (harmonicMap.originalImage[int(yj), int(xi)] == c or harmonicMap.originalImage[int(yj), int(xi)] == 255):
                         validStreamline = False
                         break
             except:
+                #print((y, x), (harmonicMap.m[0], harmonicMap.m[1]), harmonicMap.originalImage[y, x])
                 validStreamline = False
 
             # If not a valid streamline, then reset color.
             if not validStreamline:
-                harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
+                #harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
+                invalidLocations += [(x, y)]
+
+    for x, y in invalidLocations:
+        harmonicMap.originalImage[y, x] = originalColorMapping[(x, y)]
 
 
 if __name__ == "__main__":
-    #mapFilename = os.path.join(thisFilePath, "wide_maze.png")
-    mapFilename = os.path.join(thisFilePath, "muri_map.png")
+    #mapFilename = os.path.join(thisFilePath, "umass.png")
+    mapFilename = os.path.join(thisFilePath, "willow_garage.png")
+    #mapFilename = os.path.join(thisFilePath, "c_space.png")
+    #mapFilename = os.path.join(thisFilePath, "small_maze.png")
+    #mapFilename = os.path.join(thisFilePath, "large_maze.png")
+    #mapFilename = os.path.join(thisFilePath, "..", "maps", "basic.png")
 
     harmonicMap = HarmonicMap()
     harmonicMap.load(mapFilename)

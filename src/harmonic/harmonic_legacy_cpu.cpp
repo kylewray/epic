@@ -31,7 +31,7 @@
 
 namespace epic {
 
-#define MIN_ITERATIONS 1000
+#define MIN_ITERATIONS 10
 
 int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsilon,
     float omega, unsigned int *locked, float *u, unsigned int &iter)
@@ -59,6 +59,8 @@ int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsil
                 delta = std::fmax(delta, std::fabs(u[y * w + x] - uPrev));
             }
         }
+
+        //printf("Iteration: %i and Delta = %.3f vs Epsilon = %.3f\n", iter, delta, epsilon);
 
         iter++;
     }
@@ -94,6 +96,8 @@ int harmonic_legacy_sor_2d_double_cpu(unsigned int w, unsigned int h, double eps
             }
         }
 
+        //printf("Iteration: %i and Delta = %.3f vs Epsilon = %.3f\n", iter, delta, epsilon);
+
         iter++;
     }
 
@@ -127,6 +131,8 @@ int harmonic_legacy_sor_2d_long_double_cpu(unsigned int w, unsigned int h, long 
                 delta = std::fmax(delta, std::fabs(u[y * w + x] - uPrev));
             }
         }
+
+        //printf("Iteration: %i and Delta = %.3f vs Epsilon = %.3f\n", iter, delta, epsilon);
 
         iter++;
     }

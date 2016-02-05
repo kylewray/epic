@@ -115,7 +115,7 @@ class HarmonicMap(harm.Harmonic):
         rawPath = ct.POINTER(ct.c_float)()
 
         result = eh._epic.harmonic_compute_path_2d_cpu(self, x, y,
-                                                       float(0.25), float(0.5), int(1e6),
+                                                       float(0.2), float(0.4), int(1e6),
                                                        ct.byref(k), ct.byref(rawPath))
         if result != 0:
             print("Failed to compute path using 'epic' library.")

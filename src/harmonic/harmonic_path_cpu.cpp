@@ -36,6 +36,8 @@
 
 namespace epic {
 
+#define PATH_STUCK_HISTORY_LENGTH 5
+
 int harmonic_compute_potential_2d_cpu(Harmonic *harmonic, float x, float y, float &potential)
 {
     if (harmonic == nullptr || harmonic->m == nullptr ||
@@ -116,6 +118,39 @@ int harmonic_compute_gradient_2d_cpu(Harmonic *harmonic, float x, float y, float
 }
 
 
+bool harmonic_is_path_stuck_cpu(const std::vector<float> &pathVector, float stepSize)
+{
+    unsigned int n = pathVector.size();
+
+    // There is an error (it is stuck or something) if the path vector is odd.
+    if (n % 2 == 1) {
+        return true;
+    }
+
+    // Empty paths are fine.
+    if (n == 0) {
+        return false;
+    }
+
+    float x = pathVector[n - 2];
+    float y = pathVector[n - 1];
+
+    // If the path reached a point where it backtracked to a recently visited region, then there is a problem.
+    for (unsigned int i = n - 2; i > std::max(0, (int)n - 2 * PATH_STUCK_HISTORY_LENGTH - 2); i -= 2) {
+        float xi = pathVector[i - 2];
+        float yi = pathVector[i - 1];
+
+        float distance = std::sqrt(std::pow(x - xi, 2) + std::pow(y - yi, 2));
+
+        if (distance < stepSize / 2.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
         float stepSize, float cdPrecision, unsigned int maxLength,
         unsigned int &k, float *&path)
@@ -145,6 +180,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
     //pathVector.push_back(theta);
 
     while (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] != 1 &&
+            harmonic_is_path_stuck_cpu(pathVector, stepSize) == false &&
             pathVector.size() < maxLength) {
         float partialX = 0.0f;
         float partialY = 0.0f;
@@ -176,6 +212,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
 
     return EPIC_SUCCESS;
 }
+
 
 int harmonic_free_path_cpu(float *&path)
 {
