@@ -39,12 +39,12 @@ import compare_precision as cp
 precision = 1e-3
 
 domains = [
-            {'name': "UMass", 'filename': os.path.join(thisFilePath, "umass.png")},
-            {'name': "Willow", 'filename': os.path.join(thisFilePath, "willow_garage.png")},
-            {'name': "Mine S", 'filename': os.path.join(thisFilePath, "small_mine.png")},
-            {'name': "Mine L", 'filename': os.path.join(thisFilePath, "large_mine.png")},
-            {'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
-            {'name': "Maze S", 'filename': os.path.join(thisFilePath, "small_maze.png")},
+            #{'name': "UMass", 'filename': os.path.join(thisFilePath, "umass.png")},
+            #{'name': "Willow", 'filename': os.path.join(thisFilePath, "willow_garage.png")},
+            #{'name': "Mine S", 'filename': os.path.join(thisFilePath, "small_mine.png")},
+            #{'name': "Mine L", 'filename': os.path.join(thisFilePath, "large_mine.png")},
+            #{'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
+            #{'name': "Maze S", 'filename': os.path.join(thisFilePath, "small_maze.png")},
             {'name': "Maze L", 'filename': os.path.join(thisFilePath, "large_maze.png")},
           ]
 
