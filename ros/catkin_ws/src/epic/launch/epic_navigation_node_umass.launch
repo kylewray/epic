@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="map_name" default="$(find epic)/maps/umass.yaml"/>
+
+  <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(arg map_name)">
+  </node>
+
+  <node pkg="epic" type="epic_navigation_node" name="epic_navigation_node" output="screen">
+    <param name="algorithm" value="harmonic" />
+    <param name="rviz_support" value="true" />
+    <param name="steps_per_update" value="50" />
+    <param name="update_rate" value="10" />
+
+    <param name="sub_occupancy_grid" value="/map" />
+    <param name="srv_add_goals" value="add_goals" />
+    <param name="srv_remove_goals" value="remove_goals" />
+    <param name="srv_set_cells" value="set_cells" />
+    <param name="srv_compute_path" value="compute_path" />
+
+    <param name="sub_map_pose_estimate" value="/initialpose" />
+    <param name="sub_map_nav_goal" value="/move_base_simple/goal" />
+    <param name="sub_map_path" value="path" />
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find epic)/rviz/default.rviz"/>
+</launch>
+

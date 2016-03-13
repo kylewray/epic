@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(epic)
 
-# Important: Must be C++11 since I assume in EpicNavigationNode that vector.h can be dereferenced to get the array.
+# Important: Must be C++11 since I assume in EpicNavigationNode that vector.h can be dereferenced to
+# get the array.
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 ## Find catkin macros and libraries
@@ -20,7 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
 # System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-#find_package(OMPL) # This is separate because OMPL is not a catkin package.            # STEP 1/5 FOR OMPL SUPPORT
+# This is separate because OMPL is not a catkin package.
+#find_package(OMPL)                             # STEP 1/5 FOR OMPL SUPPORT
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -63,6 +65,7 @@ add_service_files(
   FILES
   ModifyGoals.srv
   SetCells.srv
+  ResetFreeCells.srv
   ComputePath.srv
 )
 
@@ -144,7 +147,9 @@ add_library(epic_nav_core_plugin
 
 # Declare a C++ executable
 add_executable(epic_navigation_node
+  src/epic_navigation_node.cpp
   src/epic_navigation_node_harmonic.cpp
+  src/epic_navigation_node_harmonic_rviz.cpp
 #  src/epic_navigation_node_ompl.cpp            # STEP 4/5 FOR OMPL SUPPORT
   src/epic_navigation_node_main.cpp
 )

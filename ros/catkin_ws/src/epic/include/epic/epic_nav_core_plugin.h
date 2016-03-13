@@ -50,10 +50,10 @@ public:
 
     /**
      *  The constructor for the EpicNavCorePlugin used by the plugin.
-     *  @param  name    The name of the planner.
-     *  @param  costmap The cost map to solve.
+     *  @param  name            The name of the planner.
+     *  @param  costmap_ros     The cost map to solve.
      */
-    EpicNavCorePlugin(std::string name, costmap_2d::Costmap2DROS *costmapROS);
+    EpicNavCorePlugin(std::string name, costmap_2d::Costmap2DROS *costmap_ros);
 
     /**
      *  The deconstructor for the EpicNavCorePlugin used by the plugin.
@@ -62,10 +62,10 @@ public:
 
     /**
      *  Initialize the plugin class EpicNavCorePlugin. Overloads from nav_core::BaseGlobalPlanner.
-     *  @param  name    The name of the planner.
-     *  @param  costmap The cost map to solve.
+     *  @param  name            The name of the planner.
+     *  @param  costmap_ros     The cost map to solve.
      */
-    void initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS);
+    void initialize(std::string name, costmap_2d::Costmap2DROS *costmap_ros);
 
     /**
      *  Uninitialize the plugin class EpicNavCorePlugin.
@@ -85,10 +85,10 @@ public:
 
     /**
      *  Set the goal given an (x, y) location on the cell map.
-     *  @param  xGoal   The x location.
-     *  @param  yGoal   The y location.
+     *  @param  x_goal  The x location.
+     *  @param  y_goal  The y location.
      */
-    void setGoal(unsigned int xGoal, unsigned int yGoal);
+    void setGoal(unsigned int x_goal, unsigned int y_goal);
 
 private:
     /**
@@ -133,10 +133,10 @@ private:
     costmap_2d::Costmap2D *costmap;
 
     // We will publish the plan so that the stupid nav_core doesn't truncate it.
-    ros::Publisher pubPlan;
+    ros::Publisher pub_plan;
 
     // Also publish the potential.
-    ros::Publisher pubPotential;
+    ros::Publisher pub_potential;
 
     // If this object has been properly initialized or not.
     bool initialized;

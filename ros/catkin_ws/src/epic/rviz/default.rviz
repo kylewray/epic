@@ -243,8 +243,8 @@ Visualization Manager:
       Scale: 15.6653
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 39.7872
-      Y: 1.51896
+      X: 15.7852
+      Y: 13.8392
     Saved: ~
 Window Geometry:
   Displays:
@@ -262,5 +262,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1920
-  X: -9
-  Y: 22
+  X: 0
+  Y: 30

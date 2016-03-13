@@ -53,7 +53,8 @@
 namespace epic {
 
 EpicNavigationNodeHarmonic::EpicNavigationNodeHarmonic(ros::NodeHandle &nh) :
-        private_node_handle(nh)
+        EpicNavigationNode(nh)
+        //private_node_handle(nh)
 {
     init_msgs = false;
     init_alg = false;
@@ -82,8 +83,6 @@ EpicNavigationNodeHarmonic::EpicNavigationNodeHarmonic(ros::NodeHandle &nh) :
     harmonic.d_delta = nullptr;
 
     num_gpu_threads = 1024;
-
-    goal_added = false;
 }
 
 
@@ -96,25 +95,60 @@ EpicNavigationNodeHarmonic::~EpicNavigationNodeHarmonic()
 }
 
 
-bool EpicNavigationNodeHarmonic::initMsgs()
+bool EpicNavigationNodeHarmonic::initialize()
 {
     if (init_msgs) {
         return false;
     }
 
-    // TODO: Figure out the "remap" problem.
-    sub_occupancy_grid = private_node_handle.subscribe("/map", 10, &EpicNavigationNodeHarmonic::subOccupancyGrid, this);
-    //sub_occupancy_grid = private_node_handle.subscribe("occupancy_grid", 10, &EpicNavigationNodeHarmonic::subOccupancyGrid, this);
-    srv_add_goals = private_node_handle.advertiseService("add_goals", &EpicNavigationNodeHarmonic::srvAddGoals, this);
-    srv_remove_goals = private_node_handle.advertiseService("remove_goals", &EpicNavigationNodeHarmonic::srvRemoveGoals, this);
-    srv_set_cells = private_node_handle.advertiseService("set_cells", &EpicNavigationNodeHarmonic::srvSetCells, this);
-    srv_compute_path = private_node_handle.advertiseService("compute_path", &EpicNavigationNodeHarmonic::srvComputePath, this);
+    std::string sub_occupancy_grid_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/sub_occupancy_grid",
+                                            sub_occupancy_grid_topic,
+                                            "/map");
+    sub_occupancy_grid = private_node_handle.subscribe(sub_occupancy_grid_topic,
+                                                        10,
+                                                        &EpicNavigationNodeHarmonic::subOccupancyGrid,
+                                                        this);
 
-    // Exclusively for simplified interaction with rviz.
-    // TODO: Figure out the "remap" problem.
-    sub_map_pose_estimate = private_node_handle.subscribe("/initialpose", 10, &EpicNavigationNodeHarmonic::subMapPoseEstimate, this);
-    sub_map_nav_goal = private_node_handle.subscribe("/move_base_simple/goal", 10, &EpicNavigationNodeHarmonic::subMapNavGoal, this);
-    pub_map_path = private_node_handle.advertise<nav_msgs::Path>("path", 1);
+    std::string srv_add_goals_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/srv_add_goals",
+                                            srv_add_goals_topic,
+                                            "add_goals");
+    srv_add_goals = private_node_handle.advertiseService(srv_add_goals_topic,
+                                                        &EpicNavigationNodeHarmonic::srvAddGoals,
+                                                        this);
+
+    std::string srv_remove_goals_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/srv_remove_goals",
+                                            srv_remove_goals_topic,
+                                            "remove_goals");
+    srv_remove_goals = private_node_handle.advertiseService(srv_remove_goals_topic,
+                                                            &EpicNavigationNodeHarmonic::srvRemoveGoals,
+                                                            this);
+
+    std::string srv_set_cells_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/srv_set_cells",
+                                            srv_set_cells_topic,
+                                            "set_cells");
+    srv_set_cells = private_node_handle.advertiseService(srv_set_cells_topic,
+                                                        &EpicNavigationNodeHarmonic::srvSetCells,
+                                                        this);
+
+    std::string srv_reset_free_cells_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/srv_reset_free_cells",
+                                            srv_reset_free_cells_topic,
+                                            "reset_free_cells");
+    srv_reset_free_cells = private_node_handle.advertiseService(srv_reset_free_cells_topic,
+                                                                &EpicNavigationNodeHarmonic::srvResetFreeCells,
+                                                                this);
+
+    std::string srv_compute_path_topic;
+    private_node_handle.param<std::string>("/epic_navigation_node/srv_compute_path",
+                                            srv_compute_path_topic,
+                                            "compute_path");
+    srv_compute_path = private_node_handle.advertiseService(srv_compute_path_topic,
+                                                            &EpicNavigationNodeHarmonic::srvComputePath,
+                                                            this);
 
     init_msgs = true;
 
@@ -310,6 +344,32 @@ bool EpicNavigationNodeHarmonic::isCellGoal(unsigned int x, unsigned int y)
 }
 
 
+bool EpicNavigationNodeHarmonic::setCells(std::vector<unsigned int> &v, std::vector<unsigned int> &types)
+{
+    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
+    // that vector objects store contiguously in memory.
+    int result = 0;
+
+    // We always update the CPU map here. Namely for the locked variable.
+    result = harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]);
+    if (result != EPIC_SUCCESS) {
+        ROS_ERROR("Error[EpicNavigationNodeHarmonic::setCells]: Failed to set the cells on the CPU.");
+        return false;
+    }
+
+    // Optionally, we update the GPU side if it is being used.
+    if (gpu) {
+        result = harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]);
+        if (result != EPIC_SUCCESS) {
+            ROS_ERROR("Error[EpicNavigationNodeHarmonic::setCells]: Failed to set the cells on the GPU.");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 void EpicNavigationNodeHarmonic::subOccupancyGrid(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
     // If the size changed, then free everything and start over.
@@ -349,20 +409,7 @@ void EpicNavigationNodeHarmonic::subOccupancyGrid(const nav_msgs::OccupancyGrid:
         }
     }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    int result = 0;
-    if (gpu) {
-        result = harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]);
-        if (result != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::subOccupancyGrid]: Failed to set the cells on the GPU.");
-        }
-    } else {
-        result = harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]);
-        if (result != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::subOccupancyGrid]: Failed to set the cells on the CPU.");
-        }
-    }
+    setCells(v, types);
 
     v.clear();
     types.clear();
@@ -402,21 +449,7 @@ bool EpicNavigationNodeHarmonic::srvAddGoals(epic::ModifyGoals::Request &req, ep
         return false;
     }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvAddGoals]: Failed to set the cells on the GPU.");
-            res.success = false;
-            return false;
-        }
-    } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvAddGoals]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
-        }
-    }
+    setCells(v, types);
 
     v.clear();
     types.clear();
@@ -453,21 +486,7 @@ bool EpicNavigationNodeHarmonic::srvRemoveGoals(epic::ModifyGoals::Request &req,
         types.push_back(EPIC_CELL_TYPE_FREE);
     }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvRemoveGoals]: Failed to set the cells on the GPU.");
-            res.success = false;
-            return false;
-        }
-    } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvRemoveGoals]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
-        }
-    }
+    setCells(v, types);
 
     v.clear();
     types.clear();
@@ -504,21 +523,39 @@ bool EpicNavigationNodeHarmonic::srvSetCells(epic::SetCells::Request &req, epic:
         types.push_back((unsigned int)req.types[i]);
     }
 
-    // Note: This trick with vectors only works for C++11 or greater; the spec updated to guarantee
-    // that vector objects store contiguously in memory.
-    if (gpu) {
-        if (harmonic_utilities_set_cells_2d_gpu(&harmonic, num_gpu_threads, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvSetCells]: Failed to set the cells on the GPU.");
-            res.success = false;
-            return false;
-        }
-    } else {
-        if (harmonic_utilities_set_cells_2d_cpu(&harmonic, types.size(), &v[0], &types[0]) != EPIC_SUCCESS) {
-            ROS_ERROR("Error[EpicNavigationNodeHarmonic::srvSetCells]: Failed to set the cells on the CPU.");
-            res.success = false;
-            return false;
+    setCells(v, types);
+
+    v.clear();
+    types.clear();
+
+    res.success = true;
+
+    return true;
+}
+
+
+bool EpicNavigationNodeHarmonic::srvResetFreeCells(epic::ResetFreeCells::Request &req, epic::ResetFreeCells::Response &res)
+{
+    if (!init_alg) {
+        ROS_WARN("Warning[EpicNavigationNodeHarmonic::srvResetFreeCells]: Algorithm was not initialized.");
+        res.success = false;
+        return false;
+    }
+
+    std::vector<unsigned int> v;
+    std::vector<unsigned int> types;
+
+    for (unsigned int y = 1; y < height - 1; y++) {
+        for (unsigned int x = 1; x < width - 1; x++) {
+            if (harmonic.locked[y * width + x] == 0) {
+                v.push_back(x);
+                v.push_back(y);
+                types.push_back(EPIC_CELL_TYPE_FREE);
+            }
         }
     }
+
+    setCells(v, types);
 
     v.clear();
     types.clear();
@@ -589,65 +626,6 @@ bool EpicNavigationNodeHarmonic::srvComputePath(epic::ComputePath::Request &req,
     raw_path = nullptr;
 
     return true;
-}
-
-
-void EpicNavigationNodeHarmonic::subMapPoseEstimate(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
-{
-    current_pose.header.frame_id = msg->header.frame_id;
-    current_pose.header.stamp = msg->header.stamp;
-
-    current_pose.pose.position.x = msg->pose.pose.position.x;
-    current_pose.pose.position.y = msg->pose.pose.position.y;
-    current_pose.pose.position.z = msg->pose.pose.position.z;
-
-    current_pose.pose.orientation.x = msg->pose.pose.orientation.x;
-    current_pose.pose.orientation.y = msg->pose.pose.orientation.y;
-    current_pose.pose.orientation.z = msg->pose.pose.orientation.z;
-    current_pose.pose.orientation.w = msg->pose.pose.orientation.w;
-
-    epic::ComputePath::Request req;
-    epic::ComputePath::Response res;
-
-    req.start = current_pose;
-
-    req.step_size = 0.05;
-    req.precision = 0.5;
-    req.max_length = width * height / req.step_size;
-
-    srvComputePath(req, res);
-
-    pub_map_path.publish(res.path);
-}
-
-
-void EpicNavigationNodeHarmonic::subMapNavGoal(const geometry_msgs::PoseStamped::ConstPtr &msg)
-{
-    epic::ModifyGoals::Request req;
-    epic::ModifyGoals::Response res;
-
-    if (goal_added) {
-        req.goals.push_back(last_goal);
-        srvRemoveGoals(req, res);
-    }
-
-    last_goal.header.frame_id = msg->header.frame_id;
-    last_goal.header.stamp = msg->header.stamp;
-
-    last_goal.pose.position.x = msg->pose.position.x;
-    last_goal.pose.position.y = msg->pose.position.y;
-    last_goal.pose.position.z = msg->pose.position.z;
-
-    last_goal.pose.orientation.x = msg->pose.orientation.x;
-    last_goal.pose.orientation.y = msg->pose.orientation.y;
-    last_goal.pose.orientation.z = msg->pose.orientation.z;
-    last_goal.pose.orientation.w = msg->pose.orientation.w;
-
-    req.goals.clear();
-    req.goals.push_back(last_goal);
-    srvAddGoals(req, res);
-
-    goal_added = true;
 }
 
 }; // namespace epic

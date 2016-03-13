@@ -1,5 +1,5 @@
 <launch>
-  <arg name="map_name" default="$(find epic)/maps/maze_1.yaml"/>
+  <arg name="map_name" default="$(find epic)/maps/umass.yaml"/>
 
   <include file="$(find epic)/launch/epic_rviz_nav.launch"/>
 

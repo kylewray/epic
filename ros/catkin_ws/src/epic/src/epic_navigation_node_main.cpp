@@ -24,7 +24,9 @@
 
 #include <ros/ros.h>
 
+#include <epic/epic_navigation_node.h>
 #include <epic/epic_navigation_node_harmonic.h>
+#include <epic/epic_navigation_node_harmonic_rviz.h>
 //#include <epic/epic_navigation_node_ompl.h>
 
 int main(int argc, char **argv)
@@ -33,26 +35,51 @@ int main(int argc, char **argv)
 
     ros::NodeHandle node_handle("~");
 
-    // TODO: Read a ROS parameter for this node to assign the desired algorithm for EpicNavigation.
-    epic::EpicNavigationNodeHarmonic epic_navigation_node_harmonic(node_handle);
-    epic_navigation_node_harmonic.initMsgs();
+    // Read a ROS parameter for this node to assign the desired algorithm for EpicNavigationNode.
+    std::string algorithm;
+    node_handle.param<std::string>("/epic_navigation_node/algorithm", algorithm, "harmonic");
 
-    // TODO: Read a ROS parameter for the number of update steps of the algorithm at a time.
-    unsigned int num_update_steps = 50;
+    // Read a ROS parameter for if Rviz message support should be included.
+    bool rviz_support = false;
+    node_handle.param<bool>("/epic_navigation_node/rviz_support", rviz_support, false);
 
-    // TODO: Read a ROS parameter for how many updates should be called per second. (Default is 10Hz.)
-    ros::Rate rate(10);
+    epic::EpicNavigationNode *epic_navigation_node;
+    
+    if (algorithm == "harmonic") {
+        if (!rviz_support) {
+            epic_navigation_node = new epic::EpicNavigationNodeHarmonic(node_handle);
+        } else {
+            epic_navigation_node = new epic::EpicNavigationNodeHarmonicRviz(node_handle);
+        }
+    }
+
+    epic_navigation_node->initialize();
+
+    // Read a ROS parameter for the number of update steps of the algorithm at a time.
+    int steps_per_update = 50;
+    node_handle.param<int>("/epic_navigation_node/steps_per_update", steps_per_update, 50);
+
+    // Read a ROS parameter for how many updates should be called per second. (Default is 10Hz.)
+    int update_rate = 10;
+    node_handle.param<int>("/epic_navigation_node/update_rate", update_rate, 10);
+
+    ros::Rate rate(update_rate);
+
+
+    printf("%s, %i, %i, %i\n", algorithm.c_str(), (int)rviz_support, steps_per_update, update_rate);
 
     while (ros::ok()) {
         // Check for service calls.
         ros::spinOnce();
 
         // Perform an update of the harmonic function or other navigation planning algorithm.
-        epic_navigation_node_harmonic.update(num_update_steps);
+        epic_navigation_node->update(steps_per_update);
 
         // Sleep and let other processes think.
         rate.sleep();
     }
+
+    delete epic_navigation_node;
 
     return 0;
 }

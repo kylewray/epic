@@ -48,8 +48,6 @@ namespace epic {
 #define COSTMAP_OBSTACLE_THRESHOLD 250
 #define NUM_THREADS_GPU 1024
 
-// TODO: Change naming convention to "var_like_this" instead of "varLikeThis". Header as well.
-
 EpicNavCorePlugin::EpicNavCorePlugin()
 {
     costmap = nullptr;
@@ -74,7 +72,7 @@ EpicNavCorePlugin::EpicNavCorePlugin()
 
 
 EpicNavCorePlugin::EpicNavCorePlugin(std::string name,
-        costmap_2d::Costmap2DROS *costmapROS)
+        costmap_2d::Costmap2DROS *costmap_ros)
 {
     costmap = nullptr;
     initialized = false;
@@ -95,7 +93,7 @@ EpicNavCorePlugin::EpicNavCorePlugin(std::string name,
     harmonic.d_locked = nullptr;
     harmonic.d_delta = nullptr;
 
-    initialize(name, costmapROS);
+    initialize(name, costmap_ros);
 }
 
 
@@ -108,16 +106,16 @@ EpicNavCorePlugin::~EpicNavCorePlugin()
 }
 
 
-void EpicNavCorePlugin::initialize(std::string name, costmap_2d::Costmap2DROS *costmapROS)
+void EpicNavCorePlugin::initialize(std::string name, costmap_2d::Costmap2DROS *costmap_ros)
 {
-    if (name.length() == 0 || costmapROS == nullptr) {
+    if (name.length() == 0 || costmap_ros == nullptr) {
         ROS_ERROR("Error[EpicNavCorePlugin::initialize]: Costmap2DROS object is not initialized.");
         return;
     }
 
     uninitialize();
 
-    costmap = costmapROS->getCostmap();
+    costmap = costmap_ros->getCostmap();
 
     harmonic.n = 2;
     harmonic.m = new unsigned int[2];
@@ -131,8 +129,8 @@ void EpicNavCorePlugin::initialize(std::string name, costmap_2d::Costmap2DROS *c
     setBoundariesAsObstacles();
 
     ros::NodeHandle privateNodeHandle("~/" + name);
-    pubPlan = privateNodeHandle.advertise<nav_msgs::Path>("plan", 1);
-    pubPotential = privateNodeHandle.advertise<nav_msgs::OccupancyGrid>("potential", 1);
+    pub_plan = privateNodeHandle.advertise<nav_msgs::Path>("plan", 1);
+    //pub_potential = privateNodeHandle.advertise<nav_msgs::OccupancyGrid>("potential", 1);
 
     initialized = true;
 }
@@ -243,16 +241,16 @@ bool EpicNavCorePlugin::makePlan(const geometry_msgs::PoseStamped &start,
     }
 
     // Set the goal location on the potential map.
-    unsigned int xCoord = 0;
-    unsigned int yCoord = 0;
+    unsigned int x_coord = 0;
+    unsigned int y_coord = 0;
 
-    if (!costmap->worldToMap(goal.pose.position.x, goal.pose.position.y, xCoord, yCoord)) {
+    if (!costmap->worldToMap(goal.pose.position.x, goal.pose.position.y, x_coord, y_coord)) {
         ROS_WARN("Warning[EpicNavCorePlugin::makePlan]: Could not convert goal to cost map location.");
-        xCoord = 0;
-        yCoord = 0;
+        x_coord = 0;
+        y_coord = 0;
     }
 
-    setGoal(xCoord, yCoord);
+    setGoal(x_coord, y_coord);
 
     ROS_INFO("Information[EpicNavCorePlugin::makePlan]: Solving harmonic function...");
     int result = harmonic_complete_gpu(&harmonic, NUM_THREADS_GPU);
@@ -271,7 +269,7 @@ bool EpicNavCorePlugin::makePlan(const geometry_msgs::PoseStamped &start,
         return false;
     }
 
-    //pubPotential.publish(harmonic.u);
+    //pub_potential.publish(harmonic.u);
 
     plan.clear();
     plan.push_back(start);
@@ -290,47 +288,47 @@ bool EpicNavCorePlugin::makePlan(const geometry_msgs::PoseStamped &start,
         ROS_WARN("Warning[EpicNavCorePlugin::makePlan]: Could not convert start to floating point cost map location.");
     }
 
-    float stepSize = 0.05f;
-    float cdPrecision = 0.5f;
-    unsigned int maxLength = harmonic.m[0] * harmonic.m[1] / stepSize;
+    float step_size = 0.05f;
+    float cd_precision = 0.5f;
+    unsigned int max_length = harmonic.m[0] * harmonic.m[1] / step_size;
 
     unsigned int k = 0;
-    float *rawPlan = nullptr;
+    float *raw_plan = nullptr;
 
-    result = harmonic_compute_path_2d_cpu(&harmonic, x, y, stepSize, cdPrecision, maxLength, k, rawPlan);
+    result = harmonic_compute_path_2d_cpu(&harmonic, x, y, step_size, cd_precision, max_length, k, raw_plan);
 
     if (result != EPIC_SUCCESS) {
         ROS_ERROR("Error[EpicNavCorePlugin::makePlan]: Failed to compute the path.");
 
-        if (rawPlan != nullptr) {
-            delete [] rawPlan;
+        if (raw_plan != nullptr) {
+            delete [] raw_plan;
         }
 
         return false;
     }
 
-    geometry_msgs::PoseStamped newGoal = goal;
+    geometry_msgs::PoseStamped new_goal = goal;
 
     for (unsigned int i = 1; i < k; i++) {
-        float x = rawPlan[2 * i + 0];
-        float y = rawPlan[2 * i + 1];
+        float x = raw_plan[2 * i + 0];
+        float y = raw_plan[2 * i + 1];
 
-        float planTheta = std::atan2(y - rawPlan[2 * (i - 1) + 1], x - rawPlan[2 * (i - 1) + 0]);
+        float plan_theta = std::atan2(y - raw_plan[2 * (i - 1) + 1], x - raw_plan[2 * (i - 1) + 0]);
 
-        float planX = 0.0f;
-        float planY = 0.0f;
+        float plan_x = 0.0f;
+        float plan_y = 0.0f;
 
-        mapToWorld(x, y, planX, planY);
+        mapToWorld(x, y, plan_x, plan_y);
 
-        newGoal.pose.position.x = planX;
-        newGoal.pose.position.y = planY;
-        newGoal.pose.orientation = tf::createQuaternionMsgFromYaw(planTheta);
+        new_goal.pose.position.x = plan_x;
+        new_goal.pose.position.y = plan_y;
+        new_goal.pose.orientation = tf::createQuaternionMsgFromYaw(plan_theta);
 
-        plan.push_back(newGoal);
+        plan.push_back(new_goal);
     }
 
-    delete [] rawPlan;
-    rawPlan = nullptr;
+    delete [] raw_plan;
+    raw_plan = nullptr;
 
     plan.push_back(goal);
 
@@ -340,7 +338,7 @@ bool EpicNavCorePlugin::makePlan(const geometry_msgs::PoseStamped &start,
 }
 
 
-void EpicNavCorePlugin::setGoal(unsigned int xGoal, unsigned int yGoal)
+void EpicNavCorePlugin::setGoal(unsigned int x_goal, unsigned int y_goal)
 {
     if (!initialized) {
         ROS_ERROR("Error[EpicNavCorePlugin::setGoal]: EpicNavCorePlugin has not been initialized yet.");
@@ -363,12 +361,13 @@ void EpicNavCorePlugin::setGoal(unsigned int xGoal, unsigned int yGoal)
     }
 
     // The point provided is in cell-coordinates, so assign it!
-    harmonic.u[yGoal * harmonic.m[1] + xGoal] = EPIC_LOG_SPACE_GOAL;
-    harmonic.locked[yGoal * harmonic.m[1] + xGoal] = 1;
+    harmonic.u[y_goal * harmonic.m[1] + x_goal] = EPIC_LOG_SPACE_GOAL;
+    harmonic.locked[y_goal * harmonic.m[1] + x_goal] = 1;
 }
 
 
-void EpicNavCorePlugin::publishPlan(const std::vector<geometry_msgs::PoseStamped> &plan) {
+void EpicNavCorePlugin::publishPlan(const std::vector<geometry_msgs::PoseStamped> &plan)
+{
     if (!initialized) {
         ROS_ERROR("Error[EpicNavCorePlugin::publishPlan]: The planner has not been initialized yet.");
         return;
@@ -385,7 +384,7 @@ void EpicNavCorePlugin::publishPlan(const std::vector<geometry_msgs::PoseStamped
         gui_plan.poses[i] = plan[i];
     }
 
-    pubPlan.publish(gui_plan);
+    pub_plan.publish(gui_plan);
 }
 
 }; // namespace epic_plan
