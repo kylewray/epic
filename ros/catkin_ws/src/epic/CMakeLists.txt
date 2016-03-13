@@ -125,12 +125,12 @@ catkin_package(
 # Your package locations should be listed before other locations
 include_directories(
   include
-  ../../../../include
+  libepic/include
 #  ${OMPL_INCLUDE_DIRS}                         # STEP 3/5 FOR OMPL SUPPORT
 )
 
 # Also include link directories...
-link_directories(../../../../lib)
+link_directories(libepic/lib)
 
 # Declare a C++ library
 add_library(epic_nav_core_plugin

@@ -22,4 +22,8 @@ clean:
 	rm -rf lib
 	rm -rf obj
 
+install:
+	mkdir -p ros/catkin_ws/src/epic/libepic/lib
+	cp lib/libepic.so ros/catkin_ws/src/epic/libepic/lib/libepic.so
+	cp -r include ros/catkin_ws/src/epic/libepic/include
 
