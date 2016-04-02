@@ -19,7 +19,7 @@
 
     <param name="sub_map_pose_estimate" value="/initialpose" />
     <param name="sub_map_nav_goal" value="/move_base_simple/goal" />
-    <param name="sub_map_path" value="path" />
+    <param name="pub_map_path" value="path" />
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find epic)/rviz/default.rviz"/>

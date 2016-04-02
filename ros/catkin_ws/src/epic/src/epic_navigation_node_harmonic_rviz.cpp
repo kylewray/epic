@@ -74,7 +74,7 @@ bool EpicNavigationNodeHarmonicRviz::initialize()
 
     // The follow subscribers/publishers are exclusively for simplified interaction with rviz.
     std::string sub_map_pose_estimate_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/sub_map_pose_estimate",
+    private_node_handle.param<std::string>("sub_map_pose_estimate",
                                             sub_map_pose_estimate_topic,
                                             "/initialpose");
     sub_map_pose_estimate = private_node_handle.subscribe(sub_map_pose_estimate_topic,
@@ -83,7 +83,7 @@ bool EpicNavigationNodeHarmonicRviz::initialize()
                                                         this);
 
     std::string sub_map_nav_goal_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/sub_map_nav_goal",
+    private_node_handle.param<std::string>("sub_map_nav_goal",
                                             sub_map_nav_goal_topic,
                                             "/move_base_simple/goal");
     sub_map_nav_goal = private_node_handle.subscribe(sub_map_nav_goal_topic,
@@ -91,11 +91,11 @@ bool EpicNavigationNodeHarmonicRviz::initialize()
                                                     &EpicNavigationNodeHarmonicRviz::subMapNavGoal,
                                                     this);
 
-    std::string sub_map_path_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/sub_map_path",
-                                            sub_map_path_topic,
+    std::string pub_map_path_topic;
+    private_node_handle.param<std::string>("pub_map_path",
+                                            pub_map_path_topic,
                                             "path");
-    pub_map_path = private_node_handle.advertise<nav_msgs::Path>(sub_map_path_topic, 1);
+    pub_map_path = private_node_handle.advertise<nav_msgs::Path>(pub_map_path_topic, 1);
 
     init_msgs = true;
 

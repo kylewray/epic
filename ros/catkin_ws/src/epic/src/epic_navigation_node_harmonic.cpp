@@ -102,7 +102,7 @@ bool EpicNavigationNodeHarmonic::initialize()
     }
 
     std::string sub_occupancy_grid_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/sub_occupancy_grid",
+    private_node_handle.param<std::string>("sub_occupancy_grid",
                                             sub_occupancy_grid_topic,
                                             "/map");
     sub_occupancy_grid = private_node_handle.subscribe(sub_occupancy_grid_topic,
@@ -111,7 +111,7 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                         this);
 
     std::string srv_add_goals_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/srv_add_goals",
+    private_node_handle.param<std::string>("srv_add_goals",
                                             srv_add_goals_topic,
                                             "add_goals");
     srv_add_goals = private_node_handle.advertiseService(srv_add_goals_topic,
@@ -119,7 +119,7 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                         this);
 
     std::string srv_remove_goals_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/srv_remove_goals",
+    private_node_handle.param<std::string>("srv_remove_goals",
                                             srv_remove_goals_topic,
                                             "remove_goals");
     srv_remove_goals = private_node_handle.advertiseService(srv_remove_goals_topic,
@@ -127,7 +127,7 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                             this);
 
     std::string srv_set_cells_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/srv_set_cells",
+    private_node_handle.param<std::string>("srv_set_cells",
                                             srv_set_cells_topic,
                                             "set_cells");
     srv_set_cells = private_node_handle.advertiseService(srv_set_cells_topic,
@@ -135,7 +135,7 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                         this);
 
     std::string srv_reset_free_cells_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/srv_reset_free_cells",
+    private_node_handle.param<std::string>("srv_reset_free_cells",
                                             srv_reset_free_cells_topic,
                                             "reset_free_cells");
     srv_reset_free_cells = private_node_handle.advertiseService(srv_reset_free_cells_topic,
@@ -143,7 +143,7 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                                 this);
 
     std::string srv_compute_path_topic;
-    private_node_handle.param<std::string>("/epic_navigation_node/srv_compute_path",
+    private_node_handle.param<std::string>("srv_compute_path",
                                             srv_compute_path_topic,
                                             "compute_path");
     srv_compute_path = private_node_handle.advertiseService(srv_compute_path_topic,

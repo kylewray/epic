@@ -35,13 +35,17 @@ int main(int argc, char **argv)
 
     ros::NodeHandle node_handle("~");
 
+    // Note: The extra "~" is not required in here because private_node_handle is initialized
+    // with this relative namespace already. Basically, it is already in the string. This
+    // differs from Python, which does not use a private node handle.
+
     // Read a ROS parameter for this node to assign the desired algorithm for EpicNavigationNode.
     std::string algorithm;
-    node_handle.param<std::string>("/epic_navigation_node/algorithm", algorithm, "harmonic");
+    node_handle.param<std::string>("algorithm", algorithm, "harmonic");
 
     // Read a ROS parameter for if Rviz message support should be included.
     bool rviz_support = false;
-    node_handle.param<bool>("/epic_navigation_node/rviz_support", rviz_support, false);
+    node_handle.param<bool>("rviz_support", rviz_support, false);
 
     epic::EpicNavigationNode *epic_navigation_node;
     
@@ -57,16 +61,13 @@ int main(int argc, char **argv)
 
     // Read a ROS parameter for the number of update steps of the algorithm at a time.
     int steps_per_update = 50;
-    node_handle.param<int>("/epic_navigation_node/steps_per_update", steps_per_update, 50);
+    node_handle.param<int>("steps_per_update", steps_per_update, 50);
 
     // Read a ROS parameter for how many updates should be called per second. (Default is 10Hz.)
     int update_rate = 10;
-    node_handle.param<int>("/epic_navigation_node/update_rate", update_rate, 10);
+    node_handle.param<int>("update_rate", update_rate, 10);
 
     ros::Rate rate(update_rate);
-
-
-    printf("%s, %i, %i, %i\n", algorithm.c_str(), (int)rviz_support, steps_per_update, update_rate);
 
     while (ros::ok()) {
         // Check for service calls.

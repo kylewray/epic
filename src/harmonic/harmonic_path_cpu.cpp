@@ -204,6 +204,13 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
         yCellIndex = (unsigned int)(y + 0.5f);
     }
 
+    // If there are only two points, then there's a 99.999% the gradient was invalid and it
+    // is not done relaxing enough. Thus, return a special error.
+    if (pathVector.size() / 2 <= 2) {
+        fprintf(stderr, "Error[harmonic_compute_path_2d_cpu]: %s\n", "Could not compute a valid path.");
+        return EPIC_ERROR_INVALID_PATH;
+    }
+
     k = pathVector.size() / 2;
     path = new float[2 * k];
     for (unsigned int i = 0; i < 2 * k; i++) {

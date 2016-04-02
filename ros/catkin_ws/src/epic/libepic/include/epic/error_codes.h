@@ -43,6 +43,7 @@ namespace epic {
 #define EPIC_ERROR_INVALID_LOCATION         10
 #define EPIC_ERROR_INVALID_CELL_TYPE        11
 #define EPIC_ERROR_INVALID_GRADIENT         12
+#define EPIC_ERROR_INVALID_PATH             13
 
 };
 
