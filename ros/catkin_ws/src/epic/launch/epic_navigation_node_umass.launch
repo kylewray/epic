@@ -8,8 +8,8 @@
   <node pkg="epic" type="epic_navigation_node" name="epic_navigation_node" output="screen">
     <param name="algorithm" value="harmonic" />
     <param name="rviz_support" value="true" />
-    <param name="steps_per_update" value="50" />
-    <param name="update_rate" value="10" />
+    <param name="steps_per_update" value="100" />
+    <param name="update_rate" value="30" />
 
     <param name="sub_occupancy_grid" value="/map" />
     <param name="srv_add_goals" value="add_goals" />
