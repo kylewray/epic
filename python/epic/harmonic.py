@@ -100,6 +100,7 @@ class Harmonic(eh.EpicHarmonic):
                 if result != 0:
                     print("Failed to execute the 'harmonic' library's CPU Gauss-Seidel solver.")
                     raise Exception()
+
         else:
             print("Failed to solve since the algorithm '%' is undefined." % (algorithm))
 

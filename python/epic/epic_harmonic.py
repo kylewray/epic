@@ -112,3 +112,14 @@ _epic.harmonic_legacy_sor_2d_long_double_cpu.argtypes = (ct.c_uint, ct.c_uint, c
                                                     ct.POINTER(ct.c_uint), ct.POINTER(ct.c_longdouble),
                                                     ct.POINTER(ct.c_uint))
 
+# Functions from 'harmonic_legacy_path_cpu.h'.
+_epic.harmonic_legacy_compute_potential_2d_cpu.argtypes = (ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint), ct.POINTER(ct.c_double),
+                                                    ct.c_double, ct.c_double, ct.POINTER(ct.c_double))
+_epic.harmonic_legacy_compute_gradient_2d_cpu.argtypes = (ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint), ct.POINTER(ct.c_double),
+                                                    ct.c_double, ct.c_double, ct.c_double,
+                                                    ct.POINTER(ct.c_double), ct.POINTER(ct.c_double))
+_epic.harmonic_legacy_compute_path_2d_cpu.argtypes = (ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint), ct.POINTER(ct.c_double),
+                                                    ct.c_double, ct.c_double, ct.c_double, ct.c_double, ct.c_uint, ct.c_int,
+                                                    ct.POINTER(ct.c_uint), ct.POINTER(ct.POINTER(ct.c_double)))
+_epic.harmonic_legacy_free_path_cpu.argtypes = tuple([ct.POINTER(ct.POINTER(ct.c_double))])
+

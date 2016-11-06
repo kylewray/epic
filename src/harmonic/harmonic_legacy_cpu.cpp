@@ -31,7 +31,7 @@
 
 namespace epic {
 
-#define MIN_ITERATIONS 10
+#define MIN_ITERATIONS 10000
 
 int harmonic_legacy_sor_2d_float_cpu(unsigned int w, unsigned int h, float epsilon,
     float omega, unsigned int *locked, float *u, unsigned int &iter)

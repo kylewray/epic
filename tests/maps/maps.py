@@ -30,18 +30,20 @@ thisFilePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
 from epic.harmonic import *
 from epic.harmonic_map import *
+from epic.harmonic_legacy import *
+from epic.harmonic_legacy_map import *
 
 import epic.epic_harmonic as eh
 
 
 images = [
           #{'name': "Trvial", 'filename': os.path.join(thisFilePath, "trivial.png")},
-          {'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
+          #{'name': "Basic", 'filename': os.path.join(thisFilePath, "basic.png")},
           #{'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
           #{'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
           #{'name': "Maze 2", 'filename': os.path.join(thisFilePath, "maze_2.png")},
           #{'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
-          #{'name': "Maze 4", 'filename': os.path.join(thisFilePath, "maze_4.png")},
+          {'name': "Maze 4", 'filename': os.path.join(thisFilePath, "maze_4.png")},
           #{'name': "Mine 1", 'filename': os.path.join(thisFilePath, "mine_1.png")},
           #{'name': "Mine 2", 'filename': os.path.join(thisFilePath, "mine_2.png")},
          ]
@@ -51,8 +53,8 @@ processes = ['gpu', 'cpu']
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2 or sys.argv[1] not in ['visual', 'visual+', 'batch']:
-        print("Please specify either 'visual' or 'batch' as an argument.")
+    if len(sys.argv) != 2 or sys.argv[1] not in ['visual', 'visual_legacy', 'batch']:
+        print("Please specify either 'visual', 'visual_legacy', or 'batch' as an argument.")
         sys.exit(0)
 
     for img in images:
@@ -61,10 +63,20 @@ if __name__ == "__main__":
         if sys.argv[1] == 'visual':
             harmonicMap = HarmonicMap()
             harmonicMap.load(img['filename'])
-            #harmonicMap.show()
 
             timing = harmonicMap.solve(process='gpu', epsilon=1e-3)
             harmonicMap.show()
+
+        elif sys.argv[1] == 'visual_legacy':
+            harmonicLegacyMap = HarmonicLegacyMap()
+
+            harmonicLegacyMap.flipped = True
+            #harmonicLegacyMap.flipped = False
+
+            harmonicLegacyMap.load(img['filename'])
+
+            timing = harmonicLegacyMap.solve(epsilon=1e-10)
+            harmonicLegacyMap.show()
 
         elif sys.argv[1] == 'batch':
             for prec in precisions:

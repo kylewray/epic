@@ -31,25 +31,27 @@ import math
 import cv2
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-import harmonic as harm
+import harmonic_legacy as harm
 import epic_harmonic as eh
 
 
-class HarmonicMap(harm.Harmonic):
-    """ A HarmonicMap object that can be used to easily solve harmonic functions in 2d maps. """
+class HarmonicLegacyMap(harm.HarmonicLegacy):
+    """ A HarmonicLegacyMap object that can be used to easily solve harmonic functions in 2d maps. """
 
     def __init__(self):
-        """ The constructor for the HarmonicMap class. """
+        """ The constructor for the HarmonicLegacyMap class. """
 
         super().__init__()
 
-        self.windowTitle = "Harmonic Map"
+        self.windowTitle = "Harmonic Legacy Map"
 
         self.originalImage = None
         self.image = None
 
         self.pxSize = 1.0
         self.hold = False
+
+        self.flipped = False
 
     def load(self, filename):
         """ Load a map from a 2d grayscale image.
@@ -67,55 +69,45 @@ class HarmonicMap(harm.Harmonic):
             raise Exception()
 
         # Convert the image into a 2d potential and set other corresponding variables.
-        self.n = 2
+        self.w = int(self.image.shape[1])
+        self.h = int(self.image.shape[0])
 
-        array_type_m_uint = ct.c_uint * (self.n)
-        self.m = array_type_m_uint(*np.array([self.image.shape[0], self.image.shape[1]]))
-
-        array_type_u_float = ct.c_float * (self.image.size)
-        self.u = array_type_u_float(*np.array([[1.0 - float(self.image[y, x] == 255) \
+        array_type_u_double = ct.c_double * (self.image.size)
+        self.u = array_type_u_double(*np.array([[1.0 - float(self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
-        self._convert_log_scale()
+
+        if self.flipped:
+            self._flip_u_values()
 
         array_type_locked_uint = ct.c_uint * (self.image.size)
         self.locked = array_type_locked_uint(*np.array([[int(self.image[y, x] == 0 or self.image[y, x] == 255) \
                                                 for x in range(self.image.shape[1])] \
                                             for y in range(self.image.shape[0])]).flatten())
 
-    def _convert_log_scale(self):
-        """ Convert u to v. """
+    def _flip_u_values(self):
+        """ Flip u-values. """
 
-        # Since this is supposed to get as close to 0 as possible, we have log(1-1e-13) ~= -4.3442952e-14
-        # which is within double machine precision.
-        #epsilon = 1e-130000
-
-        for y in range(self.m[0]):
-            for x in range(self.m[1]):
-                # u[y * self.m[1] + x] = np.log((1.0 - self.u[y * self.m[1] + x]) * (1.0 - epsilon) + epsilon)
-                if self.u[y * self.m[1] + x] == 1.0:
-                    # Note: This is within precision of floats, which has issues around +/- 1e6
-                    self.u[y * self.m[1] + x] = -1e6
-                else:
-                    self.u[y * self.m[1] + x] = 0.0
-
+        for y in range(self.h):
+            for x in range(self.w):
+                self.u[y * self.w + x] = 1.0 - self.u[y * self.w + x]
 
     def _compute_streamline(self, x, y):
         """ Compute a streamline (series of points) starting from this initial (x, y) location.
 
             Parameters:
-                x   --  The x "float pixel" location to start.
-                y   --  The y "float pixel" location to start.
+                x   --  The x "double pixel" location to start.
+                y   --  The y "double pixel" location to start.
 
             Returns:
                 The list of points from this starting location to a goal.
         """
 
         k = ct.c_uint(0)
-        rawPath = ct.POINTER(ct.c_float)()
+        rawPath = ct.POINTER(ct.c_double)()
 
-        result = eh._epic.harmonic_compute_path_2d_cpu(self, x, y,
-                                                       float(0.2), float(0.4), int(1e6),
+        result = eh._epic.harmonic_legacy_compute_path_2d_cpu(self.w, self.h, self.locked, self.u, x, y,
+                                                       float(0.2), float(0.4), int(1e6), int(self.flipped),
                                                        ct.byref(k), ct.byref(rawPath))
         if result != 0:
             print("Failed to compute path using 'epic' library.")
@@ -124,7 +116,7 @@ class HarmonicMap(harm.Harmonic):
         k = int(k.value)
         path = [(rawPath[2 * i + 0], rawPath[2 * i + 1]) for i in range(k)]
 
-        result = eh._epic.harmonic_free_path_cpu(ct.byref(rawPath))
+        result = eh._epic.harmonic_legacy_free_path_cpu(ct.byref(rawPath))
         if result != 0:
             print("Failed to free path using 'epic' library.")
 
