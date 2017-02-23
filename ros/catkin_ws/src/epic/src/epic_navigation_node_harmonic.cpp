@@ -27,17 +27,6 @@
 #include <tf/tf.h>
 #include <tf/transform_datatypes.h>
 
-#include <ompl/base/spaces/RealVectorStateSpace.h>
-#include <ompl/base/spaces/RealVectorBounds.h>
-#include <ompl/base/SpaceInformation.h>
-#include <ompl/base/StateValidityChecker.h>
-#include <ompl/base/ScopedState.h>
-#include <ompl/base/ProblemDefinition.h>
-#include <ompl/base/OptimizationObjective.h>
-#include <ompl/base/SpaceInformation.h>
-#include <ompl/base/objectives/PathLengthOptimizationObjective.h>
-#include <ompl/geometric/planners/rrt/RRTConnect.h>
-
 #include <epic/epic_navigation_node_harmonic.h>
 #include <epic/epic_navigation_node_constants.h>
 

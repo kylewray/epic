@@ -32,9 +32,6 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
-#include <ompl/base/Planner.h>
-#include <ompl/base/PlannerStatus.h>
-
 #include <epic/harmonic/harmonic.h>
 
 #include <epic/epic_navigation_node.h>
