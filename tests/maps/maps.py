@@ -42,8 +42,8 @@ images = [
           #{'name': "C-Space", 'filename': os.path.join(thisFilePath, "c_space.png")},
           #{'name': "Maze 1", 'filename': os.path.join(thisFilePath, "maze_1.png")},
           #{'name': "Maze 2", 'filename': os.path.join(thisFilePath, "maze_2.png")},
-          #{'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
-          {'name': "Maze 4", 'filename': os.path.join(thisFilePath, "maze_4.png")},
+          {'name': "Maze 3", 'filename': os.path.join(thisFilePath, "maze_3.png")},
+          #{'name': "Maze 4", 'filename': os.path.join(thisFilePath, "maze_4.png")},
           #{'name': "Mine 1", 'filename': os.path.join(thisFilePath, "mine_1.png")},
           #{'name': "Mine 2", 'filename': os.path.join(thisFilePath, "mine_2.png")},
          ]

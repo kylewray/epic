@@ -158,7 +158,7 @@ class HarmonicMap(harm.Harmonic):
 
                 # Compute the streamline and draw the points
                 for p in self._compute_streamline(x, y):
-                    self.image[p[1], p[0]] = 255
+                    self.image[int(p[1]), int(p[0])] = 255
 
                 # Update the image.
                 cv2.imshow(self.windowTitle, self.image)
