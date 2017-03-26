@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>epic</name>
+  <version>0.1.0</version>
+  <description>The epic package for anytime harmonic function path planning.</description>
+  <maintainer email="wray@cs.umass.edu">Kyle Hollins Wray</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nav_core</depend>
+  <depend>costmap_2d</depend>
+
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+
+  <depend>ompl</depend>
+
+  <exec_depend>libepic</exec_depend>
+
+  <export>
+    <nav_core plugin="${prefix}/plugins/epic_nav_core_plugin.xml" />
+  </export>
+
+</package>
+
