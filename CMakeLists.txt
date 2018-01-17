@@ -17,7 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_service_files(
   FILES
+  SetStatus.srv
   ModifyGoals.srv
+  GetCell.srv
   SetCells.srv
   ResetFreeCells.srv
   ComputePath.srv

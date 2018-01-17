@@ -47,6 +47,7 @@ EpicNavigationNodeHarmonic::EpicNavigationNodeHarmonic(ros::NodeHandle &nh) :
 {
     init_msgs = false;
     init_alg = false;
+    paused = false;
     gpu = true;
 
     width = 0;
@@ -99,6 +100,14 @@ bool EpicNavigationNodeHarmonic::initialize()
                                                         &EpicNavigationNodeHarmonic::subOccupancyGrid,
                                                         this);
 
+    std::string srv_set_status_topic;
+    private_node_handle.param<std::string>("srv_set_status",
+                                            srv_set_status_topic,
+                                            "set_status");
+    srv_set_status = private_node_handle.advertiseService(srv_set_status_topic,
+                                                          &EpicNavigationNodeHarmonic::srvSetStatus,
+                                                          this);
+
     std::string srv_add_goals_topic;
     private_node_handle.param<std::string>("srv_add_goals",
                                             srv_add_goals_topic,
@@ -114,6 +123,14 @@ bool EpicNavigationNodeHarmonic::initialize()
     srv_remove_goals = private_node_handle.advertiseService(srv_remove_goals_topic,
                                                             &EpicNavigationNodeHarmonic::srvRemoveGoals,
                                                             this);
+
+    std::string srv_get_cell_topic;
+    private_node_handle.param<std::string>("srv_get_cell",
+                                            srv_get_cell_topic,
+                                            "get_cell");
+    srv_get_cell = private_node_handle.advertiseService(srv_get_cell_topic,
+                                                        &EpicNavigationNodeHarmonic::srvGetCell,
+                                                        this);
 
     std::string srv_set_cells_topic;
     private_node_handle.param<std::string>("srv_set_cells",
@@ -148,7 +165,11 @@ bool EpicNavigationNodeHarmonic::initialize()
 void EpicNavigationNodeHarmonic::update(unsigned int num_steps)
 {
     if (!init_alg) {
-        ROS_WARN("Warning[EpicNavigationNodeHarmonic::update]: Algorithm has not been initialized yet.");
+        //ROS_WARN("Warning[EpicNavigationNodeHarmonic::update]: Algorithm has not been initialized yet.");
+        return;
+    }
+
+    if (paused) {
         return;
     }
 
@@ -405,6 +426,18 @@ void EpicNavigationNodeHarmonic::subOccupancyGrid(const nav_msgs::OccupancyGrid:
 }
 
 
+bool EpicNavigationNodeHarmonic::srvSetStatus(epic::SetStatus::Request &req, epic::SetStatus::Response &res)
+{
+    paused = (bool)req.paused;
+
+    // TODO: Set gpu assignment. Requires initialize and uninitialize code too.
+
+    res.success = true;
+
+    return true;
+}
+
+
 bool EpicNavigationNodeHarmonic::srvAddGoals(epic::ModifyGoals::Request &req, epic::ModifyGoals::Response &res)
 {
     if (!init_alg) {
@@ -480,6 +513,29 @@ bool EpicNavigationNodeHarmonic::srvRemoveGoals(epic::ModifyGoals::Request &req,
     v.clear();
     types.clear();
 
+    res.success = true;
+
+    return true;
+}
+
+
+bool EpicNavigationNodeHarmonic::srvGetCell(epic::GetCell::Request &req, epic::GetCell::Response &res)
+{
+    if (harmonic.m == nullptr || harmonic.u == nullptr || harmonic.locked == nullptr ||
+            req.x >= harmonic.m[1] || req.y >= harmonic.m[0]) {
+        ROS_WARN("Error[EpicNavigationNodeHarmonic::srvGetCell]: Location provided is outside of the map.");
+        return false;
+    }
+
+    if (gpu) {
+        if (harmonic_get_potential_values_gpu(&harmonic) != EPIC_SUCCESS) {
+            ROS_WARN("Error[EpicNavigationNodeHarmonic::srvGetCell]: Failed to get the potential values from the GPU.");
+            res.success = false;
+            return false;
+        }
+    }
+
+    res.value = harmonic.u[req.y * harmonic.m[1] + req.x];
     res.success = true;
 
     return true;
