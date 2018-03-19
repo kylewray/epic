@@ -60,6 +60,9 @@ add_executable(epic_navigation_node
   src/epic_navigation_node_main.cpp
 )
 
+add_dependencies(epic_nav_core_plugin epic_generate_messages_cpp)
+add_dependencies(epic_navigation_node epic_generate_messages_cpp)
+
 target_link_libraries(epic_nav_core_plugin
   ${catkin_LIBRARIES}
   epic
