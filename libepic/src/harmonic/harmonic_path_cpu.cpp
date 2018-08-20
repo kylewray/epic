@@ -181,7 +181,7 @@ int harmonic_compute_path_2d_cpu(Harmonic *harmonic, float x, float y,
 
     while (harmonic->locked[yCellIndex * harmonic->m[1] + xCellIndex] != 1 &&
             harmonic_is_path_stuck_cpu(pathVector, stepSize) == false &&
-            pathVector.size() < maxLength) {
+            pathVector.size() < 2 * maxLength) {
         float partialX = 0.0f;
         float partialY = 0.0f;
 
